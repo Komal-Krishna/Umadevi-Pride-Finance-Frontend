@@ -3,16 +3,13 @@
 import { useState, useEffect } from 'react'
 import { useAuth } from '../hooks/useAuth'
 import { api } from '../lib/api'
-import { LogOut, Menu, X, TrendingUp, Car, DollarSign, CreditCard, BarChart3, Building } from 'lucide-react'
+import { LogOut, Menu, X, TrendingUp, Car, DollarSign, CreditCard, BarChart3, Building, PiggyBank } from 'lucide-react'
 import toast from 'react-hot-toast'
 import DashboardOverview from './DashboardOverview'
 import VehiclesList from './VehiclesList'
-import OutsideInterestList from './OutsideInterestList'
-import LoansList from './LoansList'
-import PaymentsList from './PaymentsList'
-import AnalyticsDashboard from './analytics/AnalyticsDashboard'
+import ComingSoon from './ComingSoon'
 
-type TabType = 'overview' | 'vehicles' | 'outside-interest' | 'loans' | 'payments' | 'analytics'
+type TabType = 'overview' | 'vehicles' | 'outside-interest' | 'loans' | 'payments' | 'analytics' | 'chiti'
 
 export default function Dashboard() {
   const { logout } = useAuth()
@@ -30,8 +27,7 @@ export default function Dashboard() {
       const response = await api.get('/dashboard/summary')
       setSummary(response.data)
     } catch (error) {
-      toast.error('Failed to fetch dashboard data')
-    } finally {
+      // Silently handle error since dashboard summary is not critical
       setLoading(false)
     }
   }
@@ -48,6 +44,7 @@ export default function Dashboard() {
     { id: 'loans', label: 'Loans', icon: Building },
     { id: 'payments', label: 'Payments', icon: CreditCard },
     { id: 'analytics', label: 'Analytics', icon: BarChart3 },
+    { id: 'chiti', label: 'Chiti', icon: PiggyBank },
   ]
 
   const renderTabContent = () => {
@@ -57,13 +54,15 @@ export default function Dashboard() {
       case 'vehicles':
         return <VehiclesList />
       case 'outside-interest':
-        return <OutsideInterestList />
+        return <ComingSoon title="Outside Interest Management" description="Manage outside interest investments and track their performance." />
       case 'loans':
-        return <LoansList />
+        return <ComingSoon title="Loans Management" description="Track and manage all loan activities and repayments." />
       case 'payments':
-        return <PaymentsList />
+        return <ComingSoon title="Payments Management" description="Monitor payment schedules and transaction history." />
       case 'analytics':
-        return <AnalyticsDashboard />
+        return <ComingSoon title="Analytics Dashboard" description="Comprehensive analytics and insights for your finance management." />
+      case 'chiti':
+        return <ComingSoon title="Chiti Management" description="Manage chiti fund activities and member contributions." />
       default:
         return <DashboardOverview summary={summary} loading={loading} />
     }
