@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { X, Save, Car } from 'lucide-react'
+import { X, Save, Car, MoreVertical } from 'lucide-react'
 import { api } from '../lib/api'
 
 interface VehicleFormData {
@@ -32,12 +32,51 @@ export default function VehicleForm({ isOpen, onClose, vehicle, onSuccess }: Veh
   const [loading, setLoading] = useState(false)
   const [errors, setErrors] = useState<Partial<VehicleFormData>>({})
 
+  // Function to format number in Indian style (1,23,45,678.90)
+  const formatIndianNumber = (value: string): string => {
+    // Remove all non-digit characters except decimal point
+    const cleanValue = value.replace(/[^\d.]/g, '')
+    
+    // Split by decimal point
+    const parts = cleanValue.split('.')
+    let integerPart = parts[0]
+    const decimalPart = parts[1] || ''
+    
+    // Indian numbering system: commas every 2 digits from right, except first 3
+    if (integerPart.length > 3) {
+      // Handle first 3 digits separately
+      const firstPart = integerPart.slice(0, integerPart.length - 3)
+      const lastPart = integerPart.slice(integerPart.length - 3)
+      
+      // Add commas every 2 digits in the first part
+      let formattedFirstPart = ''
+      for (let i = 0; i < firstPart.length; i++) {
+        if (i > 0 && (firstPart.length - i) % 2 === 0) {
+          formattedFirstPart += ','
+        }
+        formattedFirstPart += firstPart[i]
+      }
+      
+      // Combine first part + comma + last 3 digits
+      integerPart = formattedFirstPart + (formattedFirstPart ? ',' : '') + lastPart
+    }
+    
+    // Combine with decimal part
+    return decimalPart ? `${integerPart}.${decimalPart}` : integerPart
+  }
+
+  // Function to parse Indian formatted number back to float
+  const parseIndianNumber = (value: string): number => {
+    const cleanValue = value.replace(/,/g, '')
+    return parseFloat(cleanValue) || 0
+  }
+
   useEffect(() => {
     if (vehicle) {
       setFormData({
         vehicle_name: vehicle.vehicle_name || '',
-        principle_amount: vehicle.principle_amount ? vehicle.principle_amount.toString() : '',
-        rent: vehicle.rent ? vehicle.rent.toString() : '',
+        principle_amount: vehicle.principle_amount ? formatIndianNumber(vehicle.principle_amount.toString()) : '',
+        rent: vehicle.rent ? formatIndianNumber(vehicle.rent.toString()) : '',
         payment_frequency: vehicle.payment_frequency || 'monthly',
         date_of_lending: vehicle.date_of_lending ? new Date(vehicle.date_of_lending).toISOString().split('T')[0] : new Date().toISOString().split('T')[0],
         lend_to: vehicle.lend_to || ''
@@ -64,14 +103,24 @@ export default function VehicleForm({ isOpen, onClose, vehicle, onSuccess }: Veh
     
     if (!formData.principle_amount.trim()) {
       newErrors.principle_amount = 'Principle amount is required'
-    } else if (parseFloat(formData.principle_amount) <= 0) {
-      newErrors.principle_amount = 'Principle amount must be greater than 0'
+    } else {
+      const amount = parseIndianNumber(formData.principle_amount)
+      if (amount <= 0) {
+        newErrors.principle_amount = 'Principle amount must be greater than 0'
+      } else if (amount > 9999999999999.99) {
+        newErrors.principle_amount = 'Principle amount cannot exceed ₹9,999,999,999,999.99'
+      }
     }
     
     if (!formData.rent.trim()) {
       newErrors.rent = 'Rent is required'
-    } else if (parseFloat(formData.rent) <= 0) {
-      newErrors.rent = 'Rent must be greater than 0'
+    } else {
+      const rent = parseIndianNumber(formData.rent)
+      if (rent <= 0) {
+        newErrors.rent = 'Rent must be greater than 0'
+      } else if (rent > 9999999999999.99) {
+        newErrors.rent = 'Rent cannot exceed ₹9,999,999,999,999.99'
+      }
     }
     
     if (!formData.lend_to.trim()) {
@@ -94,8 +143,8 @@ export default function VehicleForm({ isOpen, onClose, vehicle, onSuccess }: Veh
     try {
       const submitData = {
         ...formData,
-        principle_amount: parseFloat(formData.principle_amount),
-        rent: parseFloat(formData.rent)
+        principle_amount: parseIndianNumber(formData.principle_amount),
+        rent: parseIndianNumber(formData.rent)
       }
       
       if (vehicle) {
@@ -103,7 +152,7 @@ export default function VehicleForm({ isOpen, onClose, vehicle, onSuccess }: Veh
         await api.put(`/api/v1/vehicles/${vehicle.id}`, submitData)
       } else {
         // Create new vehicle
-        await api.post('/api/v1/vehicles', submitData)
+        await api.post('/api/v1/vehicles/create', submitData)
       }
       
       onSuccess()
@@ -116,7 +165,14 @@ export default function VehicleForm({ isOpen, onClose, vehicle, onSuccess }: Veh
   }
 
   const handleInputChange = (field: keyof VehicleFormData, value: string) => {
-    setFormData(prev => ({ ...prev, [field]: value }))
+    let processedValue = value
+    
+    // Apply Indian formatting for number fields
+    if (field === 'principle_amount' || field === 'rent') {
+      processedValue = formatIndianNumber(value)
+    }
+    
+    setFormData(prev => ({ ...prev, [field]: processedValue }))
     // Clear error when user starts typing
     if (errors[field]) {
       setErrors(prev => ({ ...prev, [field]: undefined }))
@@ -142,6 +198,12 @@ export default function VehicleForm({ isOpen, onClose, vehicle, onSuccess }: Veh
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-4">
+          <div className="bg-blue-50 border border-blue-200 rounded-md p-3 mb-4">
+            <p className="text-sm text-blue-800">
+              <strong>Note:</strong> Maximum amount allowed for principle and rent is ₹9,999,999,999,999.99
+            </p>
+          </div>
+          
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">
               Vehicle Name *
@@ -173,6 +235,9 @@ export default function VehicleForm({ isOpen, onClose, vehicle, onSuccess }: Veh
               }`}
               placeholder="0.00"
             />
+            <p className="text-xs text-gray-500 mt-1">
+              Maximum allowed: ₹9,999,999,999,999.99
+            </p>
             {errors.principle_amount && (
               <p className="text-red-500 text-sm mt-1">{errors.principle_amount}</p>
             )}
@@ -191,6 +256,9 @@ export default function VehicleForm({ isOpen, onClose, vehicle, onSuccess }: Veh
               }`}
               placeholder="0.00"
             />
+            <p className="text-xs text-gray-500 mt-1">
+              Maximum allowed: ₹9,999,999,999,999.99
+            </p>
             {errors.rent && (
               <p className="text-red-500 text-sm mt-1">{errors.rent}</p>
             )}

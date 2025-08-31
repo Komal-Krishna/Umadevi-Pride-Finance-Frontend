@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { Plus, Edit, Eye, Car, Calendar, User, DollarSign, Clock, AlertCircle, Trash2 } from 'lucide-react'
+import { Plus, Edit, Eye, Car, Calendar, User, DollarSign, Clock, AlertCircle, Trash2, MoreVertical } from 'lucide-react'
 import { api } from '../lib/api'
 import VehicleForm from './VehicleForm'
 
@@ -26,14 +26,30 @@ export default function VehiclesList() {
   const [loading, setLoading] = useState(true)
   const [showForm, setShowForm] = useState(false)
   const [editingVehicle, setEditingVehicle] = useState<Vehicle | null>(null)
+  const [openDropdown, setOpenDropdown] = useState<number | null>(null)
 
   useEffect(() => {
     fetchVehicles()
   }, [])
 
+  // Close dropdown when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (openDropdown !== null) {
+        const target = event.target as Element
+        if (!target.closest('.dropdown-container')) {
+          closeDropdown()
+        }
+      }
+    }
+
+    document.addEventListener('mousedown', handleClickOutside)
+    return () => document.removeEventListener('mousedown', handleClickOutside)
+  }, [openDropdown])
+
   const fetchVehicles = async () => {
     try {
-      const response = await api.get('/api/v1/vehicles')
+      const response = await api.get('/api/v1/vehicles/getAll')
       setVehicles(response.data)
     } catch (error) {
       console.error('Error fetching vehicles:', error)
@@ -77,6 +93,14 @@ export default function VehiclesList() {
     setEditingVehicle(null)
   }
 
+  const toggleDropdown = (vehicleId: number) => {
+    setOpenDropdown(openDropdown === vehicleId ? null : vehicleId)
+  }
+
+  const closeDropdown = () => {
+    setOpenDropdown(null)
+  }
+
   if (loading) {
     return (
       <div className="flex justify-center items-center h-64">
@@ -100,19 +124,56 @@ export default function VehiclesList() {
 
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
         {vehicles.map((vehicle) => (
-          <div key={vehicle.id} className="card">
+          <div key={vehicle.id} className="card relative">
             <div className="flex justify-between items-start mb-4">
               <div>
                 <h3 className="text-lg font-semibold text-gray-900">{vehicle.vehicle_name}</h3>
                 <p className="text-sm text-gray-600 capitalize">{vehicle.payment_frequency}</p>
               </div>
-              <span className={`px-2 py-1 text-xs rounded-full ${
-                vehicle.is_closed 
-                  ? 'bg-green-100 text-green-800' 
-                  : 'bg-blue-100 text-blue-800'
-              }`}>
-                {vehicle.is_closed ? 'Closed' : 'Active'}
-              </span>
+              <div className="flex flex-col items-end gap-2 dropdown-container">
+                <button
+                  onClick={() => toggleDropdown(vehicle.id)}
+                  className="p-1 rounded-full hover:bg-gray-100 transition-colors"
+                >
+                  <MoreVertical className="w-5 h-5 text-gray-500" />
+                </button>
+                
+                <span className={`px-2 py-1 text-xs rounded-full ${
+                  vehicle.is_closed 
+                    ? 'bg-green-100 text-green-800' 
+                    : 'bg-blue-100 text-blue-800'
+                }`}>
+                  {vehicle.is_closed ? 'Closed' : 'Active'}
+                </span>
+                
+                {/* Dropdown Options */}
+                {openDropdown === vehicle.id && (
+                  <div className="absolute top-0 right-0 mt-8 w-32 bg-white rounded-md shadow-lg border border-gray-200 z-10">
+                    <div className="py-1">
+                      <button
+                        onClick={() => {
+                          handleEditVehicle(vehicle)
+                          closeDropdown()
+                        }}
+                        className="flex items-center w-full px-3 py-2 text-sm text-gray-700 hover:bg-gray-100"
+                      >
+                        <Edit className="w-4 h-4 mr-2" />
+                        Edit
+                      </button>
+                      <button
+                        onClick={() => {
+                          handleDeleteVehicle(vehicle.id)
+                          closeDropdown()
+                        }}
+                        className="flex items-center w-full px-3 py-2 text-sm text-red-600 hover:bg-red-100"
+                      >
+                        <Trash2 className="w-4 h-4 mr-2" />
+                        Delete
+                      </button>
+                    </div>
+                  </div>
+                )}
+              </div>
             </div>
 
             <div className="space-y-2">
@@ -160,38 +221,19 @@ export default function VehiclesList() {
                   <span className="font-medium text-red-600">₹{vehicle.pending_amount.toLocaleString()}</span>
                 </div>
               </div>
-            </div>
 
-            <div className="flex gap-2 mt-4">
-              <button className="bg-gray-200 hover:bg-gray-300 text-gray-800 font-medium py-2 px-4 rounded-lg transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-offset-2 flex-1 flex items-center justify-center gap-2">
-                <Eye className="w-4 h-4" />
-                View
-              </button>
+              {/* Close Vehicle Button - Only show if not closed */}
               {!vehicle.is_closed && (
-                <button 
-                  onClick={() => handleEditVehicle(vehicle)}
-                  className="bg-gray-200 hover:bg-gray-300 text-gray-800 font-medium py-2 px-4 rounded-lg transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-offset-2 flex-1 flex items-center justify-center gap-2"
-                >
-                  <Edit className="w-4 h-4" />
-                  Edit
-                </button>
+                <div className="mt-3">
+                  <button 
+                    onClick={() => handleCloseVehicle(vehicle.id)}
+                    className="w-full bg-red-50 hover:bg-red-100 text-red-700 font-medium py-2 px-4 rounded-lg transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2 flex items-center justify-center gap-2"
+                  >
+                    <AlertCircle className="w-4 h-4" />
+                    Close Vehicle
+                  </button>
+                </div>
               )}
-              {!vehicle.is_closed && (
-                <button 
-                  onClick={() => handleCloseVehicle(vehicle.id)}
-                  className="bg-red-50 hover:bg-red-100 text-red-700 font-medium py-2 px-4 rounded-lg transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2 flex-1 flex items-center justify-center gap-2"
-                >
-                  <AlertCircle className="w-4 h-4" />
-                  Close
-                </button>
-              )}
-              <button 
-                onClick={() => handleDeleteVehicle(vehicle.id)}
-                className="bg-red-50 hover:bg-red-100 text-red-700 font-medium py-2 px-4 rounded-lg transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2 flex-1 flex items-center justify-center gap-2"
-              >
-                <Trash2 className="w-4 h-4" />
-                Delete
-              </button>
             </div>
           </div>
         ))}
