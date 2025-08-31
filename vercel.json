@@ -2,8 +2,8 @@
   "version": 2,
   "git": {
     "deploymentEnabled": {
-      "*": false,
-      "prod": true
+      "prod": true,
+      "*": false
     }
   }
 }
