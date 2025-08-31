@@ -149,7 +149,7 @@ export default function VehicleForm({ isOpen, onClose, vehicle, onSuccess }: Veh
       
       if (vehicle) {
         // Update existing vehicle
-        await api.put(`/api/v1/vehicles/${vehicle.id}`, submitData)
+        await api.put(`/api/v1/vehicles/updateDetails/${vehicle.id}`, submitData)
       } else {
         // Create new vehicle
         await api.post('/api/v1/vehicles/create', submitData)

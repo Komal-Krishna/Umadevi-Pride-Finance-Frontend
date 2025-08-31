@@ -60,7 +60,7 @@ export default function VehiclesList() {
 
   const handleCloseVehicle = async (vehicleId: number) => {
     try {
-      await api.post(`/api/v1/vehicles/${vehicleId}/close`)
+      await api.post(`/api/v1/vehicles/close/${vehicleId}`)
       fetchVehicles() // Refresh the list
     } catch (error) {
       console.error('Error closing vehicle:', error)
@@ -70,7 +70,7 @@ export default function VehiclesList() {
   const handleDeleteVehicle = async (vehicleId: number) => {
     if (window.confirm('Are you sure you want to delete this vehicle? This action cannot be undone.')) {
       try {
-        await api.delete(`/api/v1/vehicles/${vehicleId}`)
+        await api.delete(`/api/v1/vehicles/delete/${vehicleId}`)
         fetchVehicles() // Refresh the list
       } catch (error) {
         console.error('Error deleting vehicle:', error)
