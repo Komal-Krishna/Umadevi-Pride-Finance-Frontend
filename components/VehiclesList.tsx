@@ -1,7 +1,8 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { Plus, Edit, Eye, Car, Calendar, User, DollarSign, Clock, AlertCircle, Trash2, MoreVertical } from 'lucide-react'
+import { useRouter, useSearchParams } from 'next/navigation'
+import { Plus, Edit, Eye, Car, Calendar, User, DollarSign, Clock, AlertCircle, Trash2, MoreVertical, Search, Filter, ArrowUpDown } from 'lucide-react'
 import { api } from '../lib/api'
 import VehicleForm from './VehicleForm'
 
@@ -22,15 +23,37 @@ interface Vehicle {
 }
 
 export default function VehiclesList() {
+  const router = useRouter()
+  const searchParams = useSearchParams()
   const [vehicles, setVehicles] = useState<Vehicle[]>([])
   const [loading, setLoading] = useState(true)
   const [showForm, setShowForm] = useState(false)
   const [editingVehicle, setEditingVehicle] = useState<Vehicle | null>(null)
   const [openDropdown, setOpenDropdown] = useState<number | null>(null)
+  
+  // Search, filter, and sort state
+  const [searchTerm, setSearchTerm] = useState('')
+  const [statusFilter, setStatusFilter] = useState<'all' | 'active' | 'closed'>('all')
+  const [sortBy, setSortBy] = useState<'name' | 'amount' | 'date' | 'status'>('status')
+  const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('asc')
 
   useEffect(() => {
     fetchVehicles()
   }, [])
+
+  useEffect(() => {
+    // Check if there's an edit parameter in the URL
+    const editId = searchParams.get('edit')
+    if (editId) {
+      const vehicleToEdit = vehicles.find(v => v.id === parseInt(editId))
+      if (vehicleToEdit) {
+        setEditingVehicle(vehicleToEdit)
+        setShowForm(true)
+        // Remove the edit parameter from URL
+        router.replace('/vehicles')
+      }
+    }
+  }, [searchParams, vehicles, router])
 
   // Close dropdown when clicking outside
   useEffect(() => {
@@ -78,6 +101,62 @@ export default function VehiclesList() {
     }
   }
 
+  // Filter and sort vehicles
+  const getFilteredAndSortedVehicles = () => {
+    let filtered = vehicles.filter(vehicle => {
+      // Search filter
+      const matchesSearch = searchTerm === '' || 
+        vehicle.vehicle_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        vehicle.lend_to.toLowerCase().includes(searchTerm.toLowerCase())
+      
+      // Status filter
+      const matchesStatus = statusFilter === 'all' || 
+        (statusFilter === 'active' && !vehicle.is_closed) ||
+        (statusFilter === 'closed' && vehicle.is_closed)
+      
+      return matchesSearch && matchesStatus
+    })
+
+    // Sort vehicles
+    filtered.sort((a, b) => {
+      let comparison = 0
+      
+      switch (sortBy) {
+        case 'name':
+          comparison = a.vehicle_name.localeCompare(b.vehicle_name)
+          break
+        case 'amount':
+          comparison = a.principle_amount - b.principle_amount
+          break
+        case 'date':
+          comparison = new Date(a.date_of_lending).getTime() - new Date(b.date_of_lending).getTime()
+          break
+        case 'status':
+          // Active vehicles first, then closed vehicles
+          if (a.is_closed !== b.is_closed) {
+            comparison = a.is_closed ? 1 : -1
+          } else {
+            // If same status, sort by name
+            comparison = a.vehicle_name.localeCompare(b.vehicle_name)
+          }
+          break
+      }
+      
+      return sortOrder === 'asc' ? comparison : -comparison
+    })
+
+    return filtered
+  }
+
+  const handleSortChange = (newSortBy: 'name' | 'amount' | 'date' | 'status') => {
+    if (sortBy === newSortBy) {
+      setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc')
+    } else {
+      setSortBy(newSortBy)
+      setSortOrder('asc')
+    }
+  }
+
   const handleEditVehicle = (vehicle: Vehicle) => {
     setEditingVehicle(vehicle)
     setShowForm(true)
@@ -101,6 +180,10 @@ export default function VehiclesList() {
     setOpenDropdown(null)
   }
 
+  const handleVehicleClick = (vehicleId: number) => {
+    router.push(`/vehicle/${vehicleId}`)
+  }
+
   if (loading) {
     return (
       <div className="flex justify-center items-center h-64">
@@ -122,9 +205,65 @@ export default function VehiclesList() {
         </button>
       </div>
 
+      {/* Search, Filter, and Sort Controls */}
+      <div className="bg-white p-4 rounded-lg border border-gray-200">
+        <div className="flex flex-col lg:flex-row gap-4">
+          {/* Search */}
+          <div className="flex-1">
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
+              <input
+                type="text"
+                placeholder="Search by vehicle name or borrower..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              />
+            </div>
+          </div>
+
+          {/* Status Filter */}
+          <div className="flex items-center gap-2">
+            <Filter className="w-4 h-4 text-gray-400" />
+            <select
+              value={statusFilter}
+              onChange={(e) => setStatusFilter(e.target.value as 'all' | 'active' | 'closed')}
+              className="px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+            >
+              <option value="all">All Vehicles</option>
+              <option value="active">Active Only</option>
+              <option value="closed">Closed Only</option>
+            </select>
+          </div>
+
+          {/* Sort */}
+          <div className="flex items-center gap-2">
+            <ArrowUpDown className="w-4 h-4 text-gray-400" />
+            <select
+              value={`${sortBy}-${sortOrder}`}
+              onChange={(e) => {
+                const [newSortBy, newSortOrder] = e.target.value.split('-')
+                setSortBy(newSortBy as 'name' | 'amount' | 'date' | 'status')
+                setSortOrder(newSortOrder as 'asc' | 'desc')
+              }}
+              className="px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+            >
+              <option value="status-asc">Status (Active First)</option>
+              <option value="status-desc">Status (Closed First)</option>
+              <option value="name-asc">Name (A-Z)</option>
+              <option value="name-desc">Name (Z-A)</option>
+              <option value="amount-asc">Amount (Low to High)</option>
+              <option value="amount-desc">Amount (High to Low)</option>
+              <option value="date-asc">Date (Oldest First)</option>
+              <option value="date-desc">Date (Newest First)</option>
+            </select>
+          </div>
+        </div>
+      </div>
+
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-        {vehicles.map((vehicle) => (
-          <div key={vehicle.id} className="card relative">
+        {getFilteredAndSortedVehicles().map((vehicle) => (
+          <div key={vehicle.id} className="card relative cursor-pointer hover:shadow-lg transition-shadow duration-200" onClick={() => handleVehicleClick(vehicle.id)}>
             <div className="flex justify-between items-start mb-4">
               <div>
                 <h3 className="text-lg font-semibold text-gray-900">{vehicle.vehicle_name}</h3>
@@ -132,7 +271,10 @@ export default function VehiclesList() {
               </div>
               <div className="flex flex-col items-end gap-2 dropdown-container">
                 <button
-                  onClick={() => toggleDropdown(vehicle.id)}
+                  onClick={(e) => {
+                    e.stopPropagation()
+                    toggleDropdown(vehicle.id)
+                  }}
                   className="p-1 rounded-full hover:bg-gray-100 transition-colors"
                 >
                   <MoreVertical className="w-5 h-5 text-gray-500" />
@@ -148,10 +290,11 @@ export default function VehiclesList() {
                 
                 {/* Dropdown Options */}
                 {openDropdown === vehicle.id && (
-                  <div className="absolute top-0 right-0 mt-8 w-32 bg-white rounded-md shadow-lg border border-gray-200 z-10">
+                  <div className="absolute top-0 right-0 mt-8 w-32 bg-white rounded-md shadow-lg border border-gray-200 z-10" onClick={(e) => e.stopPropagation()}>
                     <div className="py-1">
                       <button
-                        onClick={() => {
+                        onClick={(e) => {
+                          e.stopPropagation()
                           handleEditVehicle(vehicle)
                           closeDropdown()
                         }}
@@ -161,7 +304,8 @@ export default function VehiclesList() {
                         Edit
                       </button>
                       <button
-                        onClick={() => {
+                        onClick={(e) => {
+                          e.stopPropagation()
                           handleDeleteVehicle(vehicle.id)
                           closeDropdown()
                         }}
@@ -226,7 +370,10 @@ export default function VehiclesList() {
               {!vehicle.is_closed && (
                 <div className="mt-3">
                   <button 
-                    onClick={() => handleCloseVehicle(vehicle.id)}
+                    onClick={(e) => {
+                      e.stopPropagation()
+                      handleCloseVehicle(vehicle.id)
+                    }}
                     className="w-full bg-red-50 hover:bg-red-100 text-red-700 font-medium py-2 px-4 rounded-lg transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2 flex items-center justify-center gap-2"
                   >
                     <AlertCircle className="w-4 h-4" />
@@ -239,20 +386,42 @@ export default function VehiclesList() {
         ))}
       </div>
 
-      {vehicles.length === 0 && (
+      {getFilteredAndSortedVehicles().length === 0 && (
         <div className="text-center py-12">
           <Car className="mx-auto h-12 w-12 text-gray-400" />
-          <h3 className="mt-2 text-sm font-medium text-gray-900">No vehicle records</h3>
-          <p className="mt-1 text-sm text-gray-500">Get started by creating a new vehicle record.</p>
-          <div className="mt-6">
-            <button
-              onClick={() => setShowForm(true)}
-              className="bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 px-4 rounded-lg transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
-            >
-              <Plus className="w-4 h-4 mr-2" />
-              Add New Vehicle
-            </button>
-          </div>
+          {vehicles.length === 0 ? (
+            <>
+              <h3 className="mt-2 text-sm font-medium text-gray-900">No vehicle records</h3>
+              <p className="mt-1 text-sm text-gray-500">Get started by creating a new vehicle record.</p>
+              <div className="mt-6">
+                <button
+                  onClick={() => setShowForm(true)}
+                  className="bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 px-4 rounded-lg transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
+                >
+                  <Plus className="w-4 h-4 mr-2" />
+                  Add New Vehicle
+                </button>
+              </div>
+            </>
+          ) : (
+            <>
+              <h3 className="mt-2 text-sm font-medium text-gray-900">No vehicles found</h3>
+              <p className="mt-1 text-sm text-gray-500">Try adjusting your search or filter criteria.</p>
+              <div className="mt-6">
+                <button
+                  onClick={() => {
+                    setSearchTerm('')
+                    setStatusFilter('all')
+                    setSortBy('status')
+                    setSortOrder('asc')
+                  }}
+                  className="bg-gray-600 hover:bg-gray-700 text-white font-medium py-2 px-4 rounded-lg transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-offset-2"
+                >
+                  Clear Filters
+                </button>
+              </div>
+            </>
+          )}
         </div>
       )}
 
