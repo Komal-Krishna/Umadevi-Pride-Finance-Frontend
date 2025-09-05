@@ -22,6 +22,16 @@ export default function Dashboard() {
     fetchDashboardSummary()
   }, [])
 
+  // Refresh dashboard data when window regains focus
+  useEffect(() => {
+    const handleFocus = () => {
+      fetchDashboardSummary()
+    }
+
+    window.addEventListener('focus', handleFocus)
+    return () => window.removeEventListener('focus', handleFocus)
+  }, [])
+
   const fetchDashboardSummary = async () => {
     try {
       const response = await api.get('/dashboard/summary')

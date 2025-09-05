@@ -41,6 +41,16 @@ export default function VehiclesList() {
     fetchVehicles()
   }, [])
 
+  // Refresh data when window regains focus (e.g., returning from other pages)
+  useEffect(() => {
+    const handleFocus = () => {
+      fetchVehicles()
+    }
+
+    window.addEventListener('focus', handleFocus)
+    return () => window.removeEventListener('focus', handleFocus)
+  }, [])
+
   useEffect(() => {
     // Check if there's an edit parameter in the URL
     const editId = searchParams.get('edit')

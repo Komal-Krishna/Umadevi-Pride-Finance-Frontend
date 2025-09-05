@@ -53,6 +53,17 @@ export default function VehicleDetails({ vehicleId }: VehicleDetailsProps) {
     fetchPayments()
   }, [vehicleId])
 
+  // Refresh data when window regains focus (e.g., returning from edit)
+  useEffect(() => {
+    const handleFocus = () => {
+      fetchVehicleDetails()
+      fetchPayments()
+    }
+
+    window.addEventListener('focus', handleFocus)
+    return () => window.removeEventListener('focus', handleFocus)
+  }, [vehicleId])
+
   const fetchVehicleDetails = async () => {
     try {
       const response = await api.get(`/api/v1/vehicles/${vehicleId}`)

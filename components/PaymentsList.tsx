@@ -25,6 +25,16 @@ export default function PaymentsList() {
     fetchPayments()
   }, [])
 
+  // Refresh data when window regains focus (e.g., returning from other pages)
+  useEffect(() => {
+    const handleFocus = () => {
+      fetchPayments()
+    }
+
+    window.addEventListener('focus', handleFocus)
+    return () => window.removeEventListener('focus', handleFocus)
+  }, [])
+
   const fetchPayments = async () => {
     try {
       const response = await api.get('/api/v1/payments')
