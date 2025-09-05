@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
-import { Plus, Edit, Eye, Car, Calendar, User, DollarSign, Clock, AlertCircle, Trash2, MoreVertical, Search, Filter, ArrowUpDown } from 'lucide-react'
+import { Plus, Edit, Eye, Car, Calendar, User, DollarSign, Clock, AlertCircle, Trash2, MoreVertical, Search, Filter, ArrowUpDown, RefreshCw } from 'lucide-react'
 import { api } from '../lib/api'
 import VehicleForm from './VehicleForm'
 
@@ -47,8 +47,22 @@ export default function VehiclesList() {
       fetchVehicles()
     }
 
-    window.addEventListener('focus', handleFocus)
-    return () => window.removeEventListener('focus', handleFocus)
+    const handleVisibilityChange = () => {
+      if (!document.hidden) {
+        fetchVehicles()
+      }
+    }
+
+    // Only add event listeners in browser environment
+    if (typeof window !== 'undefined') {
+      window.addEventListener('focus', handleFocus)
+      document.addEventListener('visibilitychange', handleVisibilityChange)
+      
+      return () => {
+        window.removeEventListener('focus', handleFocus)
+        document.removeEventListener('visibilitychange', handleVisibilityChange)
+      }
+    }
   }, [])
 
   useEffect(() => {
@@ -206,13 +220,22 @@ export default function VehiclesList() {
     <div className="space-y-6">
       <div className="flex justify-between items-center">
         <h2 className="text-2xl font-bold text-gray-900">Vehicle Management</h2>
-        <button
-          onClick={() => setShowForm(true)}
-          className="bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 px-4 rounded-lg transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 flex items-center gap-2"
-        >
-          <Plus className="w-4 h-4" />
-          Add New Vehicle
-        </button>
+        <div className="flex items-center gap-3">
+          <button
+            onClick={() => fetchVehicles()}
+            className="flex items-center gap-2 px-3 py-2 text-gray-600 hover:text-gray-900 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
+          >
+            <RefreshCw className="w-4 h-4" />
+            Refresh
+          </button>
+          <button
+            onClick={() => setShowForm(true)}
+            className="bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 px-4 rounded-lg transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 flex items-center gap-2"
+          >
+            <Plus className="w-4 h-4" />
+            Add New Vehicle
+          </button>
+        </div>
       </div>
 
       {/* Search, Filter, and Sort Controls */}

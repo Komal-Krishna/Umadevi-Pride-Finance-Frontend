@@ -32,8 +32,11 @@ export default function LoansList() {
       fetchLoans()
     }
 
-    window.addEventListener('focus', handleFocus)
-    return () => window.removeEventListener('focus', handleFocus)
+    // Only add event listener in browser environment
+    if (typeof window !== 'undefined') {
+      window.addEventListener('focus', handleFocus)
+      return () => window.removeEventListener('focus', handleFocus)
+    }
   }, [])
 
   const fetchLoans = async () => {
