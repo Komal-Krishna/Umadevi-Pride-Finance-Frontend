@@ -1,6 +1,24 @@
 import axios from 'axios'
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'
+// Determine API URL based on environment
+const getApiUrl = () => {
+  // If NEXT_PUBLIC_API_URL is set, use it
+  if (process.env.NEXT_PUBLIC_API_URL) {
+    return process.env.NEXT_PUBLIC_API_URL
+  }
+  
+  // If we're in production (Vercel), use the production backend URL
+  if (process.env.NODE_ENV === 'production') {
+    // TODO: Replace this with your actual production backend URL
+    // Options: Railway, Render, Heroku, DigitalOcean, etc.
+    return 'https://umadevi-pride-backend.railway.app' // Example Railway URL
+  }
+  
+  // Default to localhost for development
+  return 'http://localhost:8000'
+}
+
+const API_BASE_URL = getApiUrl()
 
 export const api = axios.create({
   baseURL: API_BASE_URL,

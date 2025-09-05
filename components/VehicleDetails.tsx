@@ -134,7 +134,11 @@ export default function VehicleDetails({ vehicleId }: VehicleDetailsProps) {
       setPaymentNotes('')
       setPaymentDate(new Date().toISOString().split('T')[0])
       setShowPaymentForm(false)
-      fetchPayments() // Refresh payments list
+      
+      // Small delay to ensure the backend has processed the request
+      setTimeout(() => {
+        fetchPayments() // Refresh payments list
+      }, 100)
     } catch (error: any) {
       toast.error('Failed to record payment')
     }
