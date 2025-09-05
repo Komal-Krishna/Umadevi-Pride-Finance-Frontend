@@ -27,6 +27,7 @@ export default function VehiclesList() {
   const searchParams = useSearchParams()
   const [vehicles, setVehicles] = useState<Vehicle[]>([])
   const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
   const [showForm, setShowForm] = useState(false)
   const [editingVehicle, setEditingVehicle] = useState<Vehicle | null>(null)
   const [openDropdown, setOpenDropdown] = useState<number | null>(null)
@@ -43,13 +44,24 @@ export default function VehiclesList() {
 
   // Refresh data when window regains focus (e.g., returning from other pages)
   useEffect(() => {
+    let lastRefresh = 0
+    const REFRESH_THROTTLE = 5000 // 5 seconds minimum between refreshes
+
     const handleFocus = () => {
-      fetchVehicles()
+      const now = Date.now()
+      if (now - lastRefresh > REFRESH_THROTTLE) {
+        fetchVehicles()
+        lastRefresh = now
+      }
     }
 
     const handleVisibilityChange = () => {
       if (!document.hidden) {
-        fetchVehicles()
+        const now = Date.now()
+        if (now - lastRefresh > REFRESH_THROTTLE) {
+          fetchVehicles()
+          lastRefresh = now
+        }
       }
     }
 
@@ -96,10 +108,18 @@ export default function VehiclesList() {
 
   const fetchVehicles = async () => {
     try {
+      setError(null)
       const response = await api.get('/api/v1/vehicles/getAll')
       setVehicles(response.data)
-    } catch (error) {
-      console.error('Error fetching vehicles:', error)
+    } catch (error: any) {
+      // Set user-friendly error message
+      if (error.code === 'ERR_NETWORK') {
+        setError('Unable to connect to the server. Please check your internet connection and ensure the backend is running.')
+      } else if (error.response?.status === 401) {
+        setError('Authentication failed. Please log in again.')
+      } else {
+        setError(`Failed to load vehicles: ${error.response?.data?.detail || error.message}`)
+      }
     } finally {
       setLoading(false)
     }
@@ -187,7 +207,10 @@ export default function VehiclesList() {
   }
 
   const handleFormSuccess = () => {
-    fetchVehicles() // Refresh the list
+    // Small delay to ensure the backend has processed the request
+    setTimeout(() => {
+      fetchVehicles() // Refresh the list
+    }, 100)
     setEditingVehicle(null)
   }
 
@@ -212,6 +235,46 @@ export default function VehiclesList() {
     return (
       <div className="flex justify-center items-center h-64">
         <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
+      </div>
+    )
+  }
+
+  if (error) {
+    return (
+      <div className="space-y-6">
+        <div className="flex justify-between items-center">
+          <h2 className="text-2xl font-bold text-gray-900">Vehicle Management</h2>
+          <div className="flex items-center gap-3">
+            <button
+              onClick={() => fetchVehicles()}
+              className="flex items-center gap-2 px-3 py-2 text-gray-600 hover:text-gray-900 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
+            >
+              <RefreshCw className="w-4 h-4" />
+              Retry
+            </button>
+            <button
+              onClick={() => setShowForm(true)}
+              className="bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 px-4 rounded-lg transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 flex items-center gap-2"
+            >
+              <Plus className="w-4 h-4" />
+              Add New Vehicle
+            </button>
+          </div>
+        </div>
+        
+        <div className="bg-red-50 border border-red-200 rounded-lg p-6 text-center">
+          <div className="text-red-600 mb-4">
+            <AlertCircle className="w-12 h-12 mx-auto mb-2" />
+            <h3 className="text-lg font-semibold">Connection Error</h3>
+          </div>
+          <p className="text-red-700 mb-4">{error}</p>
+          <button
+            onClick={() => fetchVehicles()}
+            className="bg-red-600 hover:bg-red-700 text-white font-medium py-2 px-4 rounded-lg transition-colors"
+          >
+            Try Again
+          </button>
+        </div>
       </div>
     )
   }
