@@ -28,8 +28,11 @@ export default function Dashboard() {
       fetchDashboardSummary()
     }
 
-    window.addEventListener('focus', handleFocus)
-    return () => window.removeEventListener('focus', handleFocus)
+    // Only add event listener in browser environment
+    if (typeof window !== 'undefined') {
+      window.addEventListener('focus', handleFocus)
+      return () => window.removeEventListener('focus', handleFocus)
+    }
   }, [])
 
   const fetchDashboardSummary = async () => {

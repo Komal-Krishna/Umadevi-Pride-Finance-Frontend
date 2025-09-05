@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
-import { ArrowLeft, Calendar, DollarSign, User, CreditCard, CheckCircle, XCircle, Plus, Clock } from 'lucide-react'
+import { ArrowLeft, Calendar, DollarSign, User, CreditCard, CheckCircle, XCircle, Plus, Clock, RefreshCw } from 'lucide-react'
 import { api } from '../lib/api'
 import toast from 'react-hot-toast'
 import Layout from './Layout'
@@ -53,15 +53,20 @@ export default function VehicleDetails({ vehicleId }: VehicleDetailsProps) {
     fetchPayments()
   }, [vehicleId])
 
-  // Refresh data when window regains focus (e.g., returning from edit)
+  // Refresh data when component becomes visible (e.g., returning from edit)
   useEffect(() => {
-    const handleFocus = () => {
-      fetchVehicleDetails()
-      fetchPayments()
+    const handleVisibilityChange = () => {
+      if (!document.hidden) {
+        fetchVehicleDetails()
+        fetchPayments()
+      }
     }
 
-    window.addEventListener('focus', handleFocus)
-    return () => window.removeEventListener('focus', handleFocus)
+    // Only add event listener in browser environment
+    if (typeof window !== 'undefined') {
+      document.addEventListener('visibilitychange', handleVisibilityChange)
+      return () => document.removeEventListener('visibilitychange', handleVisibilityChange)
+    }
   }, [vehicleId])
 
   const fetchVehicleDetails = async () => {
@@ -255,13 +260,25 @@ export default function VehicleDetails({ vehicleId }: VehicleDetailsProps) {
   return (
     <Layout title={vehicle.vehicle_name}>
       <div className="flex items-center justify-between mb-6">
-        <button
-          onClick={() => router.push('/vehicles')}
-          className="flex items-center text-gray-600 hover:text-gray-900"
-        >
-          <ArrowLeft className="h-5 w-5 mr-2" />
-          Back to Vehicles
-        </button>
+        <div className="flex items-center gap-4">
+          <button
+            onClick={() => router.push('/vehicles')}
+            className="flex items-center text-gray-600 hover:text-gray-900"
+          >
+            <ArrowLeft className="h-5 w-5 mr-2" />
+            Back to Vehicles
+          </button>
+          <button
+            onClick={() => {
+              fetchVehicleDetails()
+              fetchPayments()
+            }}
+            className="flex items-center text-blue-600 hover:text-blue-900"
+          >
+            <RefreshCw className="h-5 w-5 mr-2" />
+            Refresh
+          </button>
+        </div>
         <span className={`px-3 py-1 rounded-full text-sm font-medium ${
           !vehicle.is_closed 
             ? 'bg-green-100 text-green-800' 

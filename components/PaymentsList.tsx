@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { Plus, Eye, Edit, CreditCard, Calendar, DollarSign } from 'lucide-react'
+import { Plus, Eye, Edit, CreditCard, Calendar, DollarSign, RefreshCw } from 'lucide-react'
 import { api } from '../lib/api'
 
 interface Payment {
@@ -31,8 +31,11 @@ export default function PaymentsList() {
       fetchPayments()
     }
 
-    window.addEventListener('focus', handleFocus)
-    return () => window.removeEventListener('focus', handleFocus)
+    // Only add event listener in browser environment
+    if (typeof window !== 'undefined') {
+      window.addEventListener('focus', handleFocus)
+      return () => window.removeEventListener('focus', handleFocus)
+    }
   }, [])
 
   const fetchPayments = async () => {
@@ -77,13 +80,22 @@ export default function PaymentsList() {
     <div className="space-y-6">
       <div className="flex justify-between items-center">
         <h2 className="text-2xl font-bold text-gray-900">Payment Management</h2>
-        <button
-          onClick={() => setShowForm(true)}
-          className="btn-primary flex items-center gap-2"
-        >
-          <Plus className="w-4 h-4" />
-          Add New Payment
-        </button>
+        <div className="flex items-center gap-3">
+          <button
+            onClick={() => fetchPayments()}
+            className="flex items-center gap-2 px-3 py-2 text-gray-600 hover:text-gray-900 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
+          >
+            <RefreshCw className="w-4 h-4" />
+            Refresh
+          </button>
+          <button
+            onClick={() => setShowForm(true)}
+            className="btn-primary flex items-center gap-2"
+          >
+            <Plus className="w-4 h-4" />
+            Add New Payment
+          </button>
+        </div>
       </div>
 
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
