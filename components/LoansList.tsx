@@ -26,6 +26,16 @@ export default function LoansList() {
     fetchLoans()
   }, [])
 
+  // Refresh data when window regains focus (e.g., returning from other pages)
+  useEffect(() => {
+    const handleFocus = () => {
+      fetchLoans()
+    }
+
+    window.addEventListener('focus', handleFocus)
+    return () => window.removeEventListener('focus', handleFocus)
+  }, [])
+
   const fetchLoans = async () => {
     try {
       const response = await api.get('/api/v1/loans')
