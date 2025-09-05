@@ -1,14 +1,19 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import LoginForm from '@/components/LoginForm'
-import Dashboard from '@/components/Dashboard'
 import { useAuth } from '@/hooks/useAuth'
 
 export default function Home() {
   const { isAuthenticated, loading } = useAuth()
   const router = useRouter()
+
+  useEffect(() => {
+    if (isAuthenticated) {
+      router.push('/overview')
+    }
+  }, [isAuthenticated, router])
 
   if (loading) {
     return (
@@ -36,5 +41,5 @@ export default function Home() {
     )
   }
 
-  return <Dashboard />
+  return null
 }

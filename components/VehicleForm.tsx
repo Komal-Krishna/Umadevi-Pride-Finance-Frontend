@@ -107,8 +107,8 @@ export default function VehicleForm({ isOpen, onClose, vehicle, onSuccess }: Veh
       const amount = parseIndianNumber(formData.principle_amount)
       if (amount <= 0) {
         newErrors.principle_amount = 'Principle amount must be greater than 0'
-      } else if (amount > 9999999999999.99) {
-        newErrors.principle_amount = 'Principle amount cannot exceed ₹9,999,999,999,999.99'
+      } else if (amount > 99999999.99) {
+        newErrors.principle_amount = 'Principle amount cannot exceed ₹99,999,999.99'
       }
     }
     
@@ -118,8 +118,8 @@ export default function VehicleForm({ isOpen, onClose, vehicle, onSuccess }: Veh
       const rent = parseIndianNumber(formData.rent)
       if (rent <= 0) {
         newErrors.rent = 'Rent must be greater than 0'
-      } else if (rent > 9999999999999.99) {
-        newErrors.rent = 'Rent cannot exceed ₹9,999,999,999,999.99'
+      } else if (rent > 99999999.99) {
+        newErrors.rent = 'Rent cannot exceed ₹99,999,999.99'
       }
     }
     
@@ -142,10 +142,14 @@ export default function VehicleForm({ isOpen, onClose, vehicle, onSuccess }: Veh
     
     try {
       const submitData = {
-        ...formData,
+        vehicle_name: formData.vehicle_name,
         principle_amount: parseIndianNumber(formData.principle_amount),
-        rent: parseIndianNumber(formData.rent)
+        rent: parseIndianNumber(formData.rent),
+        payment_frequency: formData.payment_frequency,
+        date_of_lending: formData.date_of_lending,
+        lend_to: formData.lend_to
       }
+      
       
       if (vehicle) {
         // Update existing vehicle
@@ -200,7 +204,7 @@ export default function VehicleForm({ isOpen, onClose, vehicle, onSuccess }: Veh
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="bg-blue-50 border border-blue-200 rounded-md p-3 mb-4">
             <p className="text-sm text-blue-800">
-              <strong>Note:</strong> Maximum amount allowed for principle and rent is ₹9,999,999,999,999.99
+              <strong>Note:</strong> Maximum amount allowed for principle and rent is ₹99,999,999.99
             </p>
           </div>
           
