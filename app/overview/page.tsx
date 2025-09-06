@@ -15,7 +15,7 @@ export default function OverviewPage() {
 
   const fetchDashboardSummary = async () => {
     try {
-      const response = await api.get('/dashboard/summary')
+      const response = await api.get('/api/v1/dashboard/summary')
       setSummary(response.data)
     } catch (error) {
       // Silently handle error since dashboard summary is not critical
