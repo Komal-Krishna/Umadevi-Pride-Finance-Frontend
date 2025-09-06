@@ -189,33 +189,6 @@ export default function VehicleAnalytics({ data }: VehicleAnalyticsProps) {
         </div>
       </div>
 
-      {/* Extended Days Analysis */}
-      <div className="card">
-        <h3 className="text-lg font-semibold text-gray-900 mb-4">Extended Rental Analysis</h3>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          <div className="text-center p-4 bg-gray-50 rounded-lg">
-            <div className="text-2xl font-bold text-gray-900 mb-2">
-              {data.vehicles_with_extensions || 0}
-            </div>
-            <div className="text-sm text-gray-600">Vehicles with Extensions</div>
-          </div>
-          <div className="text-center p-4 bg-gray-50 rounded-lg">
-            <div className="text-2xl font-bold text-gray-900 mb-2">
-              {data.extended_days_total || 0}
-            </div>
-            <div className="text-sm text-gray-600">Total Extended Days</div>
-          </div>
-          <div className="text-center p-4 bg-gray-50 rounded-lg">
-            <div className="text-2xl font-bold text-gray-900 mb-2">
-              {data.extended_days_total && data.vehicles_with_extensions 
-                ? Math.round(data.extended_days_total / data.vehicles_with_extensions)
-                : 0
-              }
-            </div>
-            <div className="text-sm text-gray-600">Average Days Extended</div>
-          </div>
-        </div>
-      </div>
     </div>
   )
 }
