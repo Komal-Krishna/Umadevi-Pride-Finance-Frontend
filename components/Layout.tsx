@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react'
 import { useAuth } from '@/hooks/useAuth'
 import { LogOut, Menu, X } from 'lucide-react'
 import toast from 'react-hot-toast'
+import { useRouter } from 'next/navigation'
 import Navigation from './Navigation'
 
 interface LayoutProps {
@@ -13,11 +14,13 @@ interface LayoutProps {
 
 export default function Layout({ children, title }: LayoutProps) {
   const { logout } = useAuth()
+  const router = useRouter()
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
 
   const handleLogout = () => {
     logout()
     toast.success('Logged out successfully')
+    router.push('/')
   }
 
   return (

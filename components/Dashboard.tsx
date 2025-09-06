@@ -5,6 +5,7 @@ import { useAuth } from '../hooks/useAuth'
 import { api } from '../lib/api'
 import { LogOut, Menu, X, TrendingUp, Car, DollarSign, CreditCard, BarChart3, Building, PiggyBank } from 'lucide-react'
 import toast from 'react-hot-toast'
+import { useRouter } from 'next/navigation'
 import DashboardOverview from './DashboardOverview'
 import VehiclesList from './VehiclesList'
 import ComingSoon from './ComingSoon'
@@ -13,6 +14,7 @@ type TabType = 'overview' | 'vehicles' | 'outside-interest' | 'loans' | 'payment
 
 export default function Dashboard() {
   const { logout } = useAuth()
+  const router = useRouter()
   const [activeTab, setActiveTab] = useState<TabType>('overview')
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
   const [summary, setSummary] = useState<any>(null)
@@ -48,6 +50,7 @@ export default function Dashboard() {
   const handleLogout = () => {
     logout()
     toast.success('Logged out successfully')
+    router.push('/')
   }
 
   const tabs = [
