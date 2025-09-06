@@ -215,9 +215,9 @@ export default function VehicleDetails({ vehicleId }: VehicleDetailsProps) {
     return payments.reduce((total, payment) => total + payment.amount, 0)
   }
 
-  const getRemainingAmount = () => {
+  const getPrincipleAmount = () => {
     if (!vehicle) return 0
-    return vehicle.principle_amount - getTotalPaid()
+    return vehicle.principle_amount
   }
 
   const getDuration = () => {
@@ -362,11 +362,11 @@ export default function VehicleDetails({ vehicleId }: VehicleDetailsProps) {
                   <p className="text-xl font-bold text-blue-900">{formatCurrency(getTotalPaid())}</p>
                 </div>
                 <div className="text-center p-4 bg-orange-50 rounded-lg">
-                  <p className="text-sm text-orange-600">Remaining</p>
-                  <p className="text-xl font-bold text-orange-900">{formatCurrency(getRemainingAmount())}</p>
+                  <p className="text-sm text-orange-600">Principle Amount</p>
+                  <p className="text-xl font-bold text-orange-900">{formatCurrency(getPrincipleAmount())}</p>
                 </div>
                 <div className="text-center p-4 bg-green-50 rounded-lg">
-                  <p className="text-sm text-green-600">Progress</p>
+                  <p className="text-sm text-green-600">Profit</p>
                   <p className="text-xl font-bold text-green-900">
                     {vehicle.principle_amount > 0 
                       ? Math.round((getTotalPaid() / vehicle.principle_amount) * 100)
