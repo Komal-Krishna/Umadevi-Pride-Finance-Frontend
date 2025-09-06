@@ -257,53 +257,6 @@ export default function VehicleDetails({ vehicleId }: VehicleDetailsProps) {
     return vehicle.rent
   }
 
-  const calculateExtendedDays = () => {
-    if (!vehicle || !vehicle.is_closed || !vehicle.closure_date) return 0
-    
-    const startDate = new Date(vehicle.date_of_lending)
-    const endDate = new Date(vehicle.closure_date)
-    
-    // Calculate the expected end date based on payment frequency
-    let expectedEndDate = new Date(startDate)
-    
-    switch (vehicle.payment_frequency) {
-      case 'daily':
-        // For daily, calculate based on total payments made
-        const totalPayments = payments.length
-        expectedEndDate.setDate(startDate.getDate() + totalPayments)
-        break
-      case 'weekly':
-        // For weekly, calculate based on total payments made
-        const weeklyPayments = payments.length
-        expectedEndDate.setDate(startDate.getDate() + (weeklyPayments * 7))
-        break
-      case 'monthly':
-        // For monthly, calculate based on total payments made
-        const monthlyPayments = payments.length
-        expectedEndDate.setMonth(startDate.getMonth() + monthlyPayments)
-        break
-      case 'quarterly':
-        // For quarterly, calculate based on total payments made
-        const quarterlyPayments = payments.length
-        expectedEndDate.setMonth(startDate.getMonth() + (quarterlyPayments * 3))
-        break
-      case 'yearly':
-        // For yearly, calculate based on total payments made
-        const yearlyPayments = payments.length
-        expectedEndDate.setFullYear(startDate.getFullYear() + yearlyPayments)
-        break
-      default:
-        // Default to monthly
-        const defaultPayments = payments.length
-        expectedEndDate.setMonth(startDate.getMonth() + defaultPayments)
-    }
-    
-    // Calculate extended days
-    const diffTime = endDate.getTime() - expectedEndDate.getTime()
-    const extendedDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24))
-    
-    return Math.max(0, extendedDays)
-  }
 
   const calculatePerDayAmount = () => {
     if (!vehicle) return 0
@@ -326,34 +279,37 @@ export default function VehicleDetails({ vehicleId }: VehicleDetailsProps) {
     }
   }
 
-  const calculateExtendedAmount = () => {
-    const extendedDays = calculateExtendedDays()
-    const perDayAmount = calculatePerDayAmount()
-    return extendedDays * perDayAmount
-  }
 
   const getDaysPassedThisMonth = () => {
     if (!vehicle) return 0
     
-    const today = new Date()
-    const lendingDate = new Date(vehicle.date_of_lending)
+    const startDate = new Date(vehicle.date_of_lending)
+    const endDate = vehicle.is_closed && vehicle.closure_date 
+      ? new Date(vehicle.closure_date) 
+      : new Date()
     
-    // Calculate the current monthly anniversary date
-    const currentAnniversary = new Date(today.getFullYear(), today.getMonth(), lendingDate.getDate())
+    // Calculate months difference
+    let months = (endDate.getFullYear() - startDate.getFullYear()) * 12 + 
+                 (endDate.getMonth() - startDate.getMonth())
     
-    // If today is before the anniversary this month, we're still in the previous month cycle
-    if (today.getDate() < lendingDate.getDate()) {
-      // Calculate days from the previous month's anniversary to today
-      const prevAnniversary = new Date(today.getFullYear(), today.getMonth() - 1, lendingDate.getDate())
-      const diffTime = today.getTime() - prevAnniversary.getTime()
-      const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24))
-      return Math.max(0, diffDays)
+    let days = 0
+    
+    if (endDate.getDate() < startDate.getDate()) {
+      // Case 1: Present day < lending day (e.g., 5 < 17)
+      // Subtract 1 month and calculate days from previous month's anniversary
+      months--
+      
+      // Calculate days from previous month's anniversary to present date
+      const prevAnniversary = new Date(endDate.getFullYear(), endDate.getMonth() - 1, startDate.getDate())
+      const diffTime = endDate.getTime() - prevAnniversary.getTime()
+      days = Math.ceil(diffTime / (1000 * 60 * 60 * 24))
     } else {
-      // Calculate days from this month's anniversary to today
-      const diffTime = today.getTime() - currentAnniversary.getTime()
-      const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24))
-      return Math.max(0, diffDays)
+      // Case 2: Present day >= lending day (e.g., 19 >= 17)
+      // Just calculate days from current month's anniversary
+      days = endDate.getDate() - startDate.getDate()
     }
+    
+    return Math.max(0, days)
   }
 
   const calculateMonthlyRentTillDate = () => {
@@ -449,7 +405,9 @@ export default function VehicleDetails({ vehicleId }: VehicleDetailsProps) {
                 <div className="flex items-center">
                   <Clock className="h-5 w-5 text-gray-400 mr-3" />
                   <div>
-                    <p className="text-sm text-gray-600">Duration</p>
+                    <p className="text-sm text-gray-600">
+                      Duration
+                    </p>
                     <p className="font-medium text-gray-900">
                       {(() => {
                         const duration = getDuration()
@@ -460,6 +418,7 @@ export default function VehicleDetails({ vehicleId }: VehicleDetailsProps) {
                 </div>
               </div>
               
+
               {/* Rent Amounts - Side by Side */}
               <div className="mt-4 grid grid-cols-1 md:grid-cols-2 gap-4">
                 {/* Monthly Rent */}
@@ -475,7 +434,9 @@ export default function VehicleDetails({ vehicleId }: VehicleDetailsProps) {
                 <div className="flex items-center bg-green-50 p-3 rounded-lg border border-green-200">
                   <Calendar className="h-5 w-5 text-green-600 mr-3" />
                   <div>
-                    <p className="text-sm text-green-700 font-medium">Rent till date</p>
+                    <p className="text-sm text-green-700 font-medium">
+                      Rent till today
+                    </p>
                     <p className="text-lg font-bold text-green-800">{formatCurrency(calculateMonthlyRentTillDate())}</p>
                     <p className="text-xs text-green-600">
                       {getDaysPassedThisMonth()} days × {formatCurrency(calculatePerDayAmount())}/day
@@ -687,28 +648,6 @@ export default function VehicleDetails({ vehicleId }: VehicleDetailsProps) {
               </div>
             </div>
 
-            {/* Extended Days Information - Only show when closed */}
-            {vehicle.is_closed && calculateExtendedDays() > 0 && (
-              <div className="card bg-orange-50 border border-orange-200">
-                <div className="text-center py-4">
-                  <div className="flex items-center justify-center mb-3">
-                    <AlertCircle className="h-5 w-5 text-orange-600 mr-2" />
-                    <h3 className="text-lg font-semibold text-orange-800">Extended Days</h3>
-                  </div>
-                  <div className="space-y-2">
-                    <div className="text-2xl font-bold text-orange-700">
-                      {calculateExtendedDays()} days
-                    </div>
-                    <div className="text-sm text-orange-600">
-                      Per day amount: {formatCurrency(calculatePerDayAmount())}
-                    </div>
-                    <div className="text-lg font-semibold text-orange-800">
-                      Extra amount: {formatCurrency(calculateExtendedAmount())}
-                    </div>
-                  </div>
-                </div>
-              </div>
-            )}
 
             {/* Duration Card */}
             <div className="card bg-blue-50 border border-blue-200">
