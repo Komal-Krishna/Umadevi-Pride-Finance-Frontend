@@ -11,7 +11,7 @@ import VehiclesList from './VehiclesList'
 import OutsideInterestList from './OutsideInterestList'
 import ComingSoon from './ComingSoon'
 
-type TabType = 'overview' | 'vehicles' | 'outside-interest' | 'loans' | 'payments' | 'analytics' | 'chiti'
+type TabType = 'overview' | 'vehicles' | 'outside-interest' | 'loans' | 'payments' | 'analytics' | 'chit'
 
 export default function Dashboard() {
   const { logout } = useAuth()
@@ -61,7 +61,7 @@ export default function Dashboard() {
     { id: 'loans', label: 'Loans', icon: Building },
     { id: 'payments', label: 'Payments', icon: CreditCard },
     { id: 'analytics', label: 'Analytics', icon: BarChart3 },
-    { id: 'chiti', label: 'Chiti', icon: PiggyBank },
+    { id: 'chit', label: 'Chit', icon: PiggyBank },
   ]
 
   const renderTabContent = () => {
@@ -78,8 +78,8 @@ export default function Dashboard() {
         return <ComingSoon title="Payments Management" description="Monitor payment schedules and transaction history." />
       case 'analytics':
         return <ComingSoon title="Analytics Dashboard" description="Comprehensive analytics and insights for your finance management." />
-      case 'chiti':
-        return <ComingSoon title="Chiti Management" description="Manage chiti fund activities and member contributions." />
+      case 'chit':
+        return <ComingSoon title="Chit Management" description="Manage chit fund activities and member contributions." />
       default:
         return <DashboardOverview summary={summary} loading={loading} />
     }

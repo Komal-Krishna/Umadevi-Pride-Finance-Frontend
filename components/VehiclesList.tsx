@@ -438,19 +438,6 @@ export default function VehiclesList() {
               </div>
               
 
-              {/* Payment Information */}
-              <div className="border-t pt-2 mt-2">
-                <div className="flex items-center gap-2 text-sm mb-1">
-                  <DollarSign className="w-4 h-4 text-green-500" />
-                  <span className="text-gray-600">Total Payments: </span>
-                  <span className="font-medium text-green-600">₹{vehicle.total_payments.toLocaleString()}</span>
-                </div>
-                <div className="flex items-center gap-2 text-sm">
-                  <DollarSign className="w-4 h-4 text-red-500" />
-                  <span className="text-gray-600">Pending Amount: </span>
-                  <span className="font-medium text-red-600">₹{vehicle.pending_amount.toLocaleString()}</span>
-                </div>
-              </div>
 
               {/* Close Vehicle Button - Only show if not closed */}
               {!vehicle.is_closed && (
