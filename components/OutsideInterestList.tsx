@@ -54,7 +54,7 @@ export default function OutsideInterestList() {
 
   const fetchInterests = async () => {
     try {
-      const response = await api.get('/api/v1/outside-interest')
+      const response = await api.get('/api/v1/outside_interest')
       setInterests(response.data)
     } catch (error) {
       console.error('Error fetching interests:', error)
@@ -68,7 +68,7 @@ export default function OutsideInterestList() {
     
     try {
       setDeleting(true)
-      await api.delete(`/api/v1/outside-interest/${selectedInterest.id}`)
+      await api.delete(`/api/v1/outside_interest/${selectedInterest.id}`)
       toast.success('Interest record deleted successfully!')
       fetchInterests()
     } catch (error: any) {
@@ -86,7 +86,7 @@ export default function OutsideInterestList() {
     
     try {
       setClosing(true)
-      await api.post(`/api/v1/outside-interest/${selectedInterest.id}/close`)
+      await api.post(`/api/v1/outside_interest/${selectedInterest.id}/close`)
       toast.success('Interest record closed successfully!')
       fetchInterests()
     } catch (error: any) {
