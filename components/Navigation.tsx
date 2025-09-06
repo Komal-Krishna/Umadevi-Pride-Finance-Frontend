@@ -11,7 +11,7 @@ const navigationItems = [
   { id: 'loans', label: 'Loans', icon: Building, href: '/loans' },
   { id: 'payments', label: 'Payments', icon: CreditCard, href: '/payments' },
   { id: 'analytics', label: 'Analytics', icon: BarChart3, href: '/analytics' },
-  { id: 'chiti', label: 'Chiti', icon: PiggyBank, href: '/chiti' },
+  { id: 'chit', label: 'Chit', icon: PiggyBank, href: '/chit' },
 ]
 
 export default function Navigation() {

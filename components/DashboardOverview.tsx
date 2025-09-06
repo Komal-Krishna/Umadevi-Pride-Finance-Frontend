@@ -111,7 +111,7 @@ export default function DashboardOverview({ summary, loading }: DashboardOvervie
         <div className="card bg-gray-50 border-gray-200">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm font-medium text-gray-700">Chiti Management</p>
+              <p className="text-sm font-medium text-gray-700">Chit Management</p>
               <p className="text-lg font-bold text-gray-900 mt-1">Coming Soon</p>
             </div>
             <div className="p-3 rounded-full bg-gray-100">
@@ -119,7 +119,7 @@ export default function DashboardOverview({ summary, loading }: DashboardOvervie
             </div>
           </div>
           <div className="mt-4">
-            <p className="text-sm text-gray-600">Manage chiti fund activities</p>
+            <p className="text-sm text-gray-600">Manage chit fund activities</p>
           </div>
         </div>
       </div>
@@ -165,7 +165,7 @@ export default function DashboardOverview({ summary, loading }: DashboardOvervie
               <Clock className="h-5 w-5 text-gray-400" />
             </div>
             <div className="flex items-center justify-between">
-              <span className="text-sm text-gray-600">Chiti</span>
+              <span className="text-sm text-gray-600">Chit</span>
               <Clock className="h-5 w-5 text-gray-400" />
             </div>
           </div>
