@@ -2,16 +2,35 @@
 
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
-import { ArrowLeft, Calendar, DollarSign, User, CreditCard, CheckCircle, XCircle, Plus, Clock, RefreshCw, AlertCircle } from 'lucide-react'
+import { 
+  ArrowLeft, 
+  Edit, 
+  Trash2, 
+  Lock, 
+  DollarSign, 
+  Calendar, 
+  User, 
+  Percent,
+  Clock,
+  TrendingUp,
+  AlertCircle,
+  Plus,
+  RefreshCw,
+  CreditCard,
+  CheckCircle
+} from 'lucide-react'
 import { api } from '../lib/api'
 import toast from 'react-hot-toast'
+import OutsideInterestForm from './OutsideInterestForm'
 import Layout from './Layout'
 
-interface Vehicle {
+interface OutsideInterest {
   id: number
-  vehicle_name: string
+  to_whom: string
+  category: string
   principle_amount: number
-  rent: number
+  interest_rate_percentage: number
+  interest_rate_indian: number
   payment_frequency: string
   date_of_lending: string
   lend_to: string
@@ -19,11 +38,14 @@ interface Vehicle {
   closure_date?: string
   created_at: string
   updated_at: string
+  extended_days?: number
+  total_payments?: number
+  pending_amount?: number
 }
 
 interface Payment {
   id: number
-  vehicle_id: number
+  vehicle_id?: number
   amount: number
   payment_date: string
   payment_type: string
@@ -31,13 +53,13 @@ interface Payment {
   created_at: string
 }
 
-interface VehicleDetailsProps {
-  vehicleId: string
+interface OutsideInterestDetailsProps {
+  interestId: string
 }
 
-export default function VehicleDetails({ vehicleId }: VehicleDetailsProps) {
+export default function OutsideInterestDetails({ interestId }: OutsideInterestDetailsProps) {
   const router = useRouter()
-  const [vehicle, setVehicle] = useState<Vehicle | null>(null)
+  const [interest, setInterest] = useState<OutsideInterest | null>(null)
   const [payments, setPayments] = useState<Payment[]>([])
   const [loading, setLoading] = useState(true)
   const [showPaymentForm, setShowPaymentForm] = useState(false)
@@ -49,15 +71,15 @@ export default function VehicleDetails({ vehicleId }: VehicleDetailsProps) {
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
 
   useEffect(() => {
-    fetchVehicleDetails()
+    fetchInterestDetails()
     fetchPayments()
-  }, [vehicleId])
+  }, [interestId])
 
   // Refresh data when component becomes visible (e.g., returning from edit)
   useEffect(() => {
     const handleVisibilityChange = () => {
       if (!document.hidden) {
-        fetchVehicleDetails()
+        fetchInterestDetails()
         fetchPayments()
       }
     }
@@ -67,29 +89,39 @@ export default function VehicleDetails({ vehicleId }: VehicleDetailsProps) {
       document.addEventListener('visibilitychange', handleVisibilityChange)
       return () => document.removeEventListener('visibilitychange', handleVisibilityChange)
     }
-  }, [vehicleId])
+  }, [interestId])
 
-  const fetchVehicleDetails = async () => {
+  const fetchInterestDetails = async () => {
+    if (!interestId) {
+      toast.error('Invalid interest ID')
+      router.push('/outside_interest')
+      return
+    }
+    
     try {
-      const response = await api.get(`/api/v1/vehicles/${vehicleId}`)
-      setVehicle(response.data)
+      const response = await api.get(`/api/v1/outside_interest/${interestId}`)
+      setInterest(response.data)
     } catch (error: any) {
       if (error.response?.status === 404) {
-        toast.error('Vehicle not found. Please check if the vehicle exists.')
+        toast.error('Interest record not found. Please check if the record exists.')
       } else if (error.response?.status === 401) {
         toast.error('Session expired. Please log in again.')
       } else {
-        toast.error('Failed to fetch vehicle details')
+        toast.error('Failed to fetch interest details')
       }
-      router.push('/vehicles')
+      router.push('/outside_interest')
     } finally {
       setLoading(false)
     }
   }
 
   const fetchPayments = async () => {
+    if (!interestId) {
+      return
+    }
+    
     try {
-      const response = await api.get(`/api/v1/payments?vehicle_id=${vehicleId}`)
+      const response = await api.get(`/api/v1/outside_interest/${interestId}/payments`)
       // Map description field to notes for frontend compatibility
       const paymentsWithNotes = (response.data || []).map((payment: any) => ({
         ...payment,
@@ -120,13 +152,15 @@ export default function VehicleDetails({ vehicleId }: VehicleDetailsProps) {
 
     try {
       const paymentData = {
-        vehicle_id: parseInt(vehicleId),
         amount: parseFloat(paymentAmount),
         payment_date: paymentDate,
-        notes: paymentNotes
+        description: paymentNotes,
+        payment_type: 'credit',
+        source_type: 'outside_interest',
+        payment_status: 'PAID'
       }
 
-      await api.post('/api/v1/payments/create', paymentData)
+      await api.post(`/api/v1/outside_interest/${interestId}/payments`, paymentData)
       
       toast.success('Payment recorded successfully!')
       setPaymentAmount('')
@@ -141,6 +175,30 @@ export default function VehicleDetails({ vehicleId }: VehicleDetailsProps) {
       }, 100)
     } catch (error: any) {
       toast.error('Failed to record payment')
+    }
+  }
+
+  const handleCloseInterest = async () => {
+    if (!interest) return
+    try {
+      await api.post(`/api/v1/outside_interest/${interest.id}/close`)
+      toast.success('Interest record closed successfully!')
+      setShowCloseConfirm(false)
+      fetchInterestDetails() // Refresh interest details
+    } catch (error) {
+      toast.error('Failed to close interest record')
+    }
+  }
+
+  const handleDeleteInterest = async () => {
+    if (!interest) return
+    try {
+      await api.delete(`/api/v1/outside_interest/${interest.id}`)
+      toast.success('Interest record deleted successfully!')
+      setShowDeleteConfirm(false)
+      router.push('/outside_interest') // Redirect to interests list
+    } catch (error) {
+      toast.error('Failed to delete interest record')
     }
   }
 
@@ -178,30 +236,6 @@ export default function VehicleDetails({ vehicleId }: VehicleDetailsProps) {
     setDisplayAmount(formatNumberWithCommas(value))
   }
 
-  const handleCloseVehicle = async () => {
-    if (!vehicle) return
-    try {
-      await api.post(`/api/v1/vehicles/close/${vehicle.id}`)
-      toast.success('Vehicle closed successfully!')
-      setShowCloseConfirm(false)
-      fetchVehicleDetails() // Refresh vehicle details
-    } catch (error) {
-      toast.error('Failed to close vehicle')
-    }
-  }
-
-  const handleDeleteVehicle = async () => {
-    if (!vehicle) return
-    try {
-      await api.delete(`/api/v1/vehicles/delete/${vehicle.id}`)
-      toast.success('Vehicle deleted successfully!')
-      setShowDeleteConfirm(false)
-      router.push('/vehicles') // Redirect to vehicles list
-    } catch (error) {
-      toast.error('Failed to delete vehicle')
-    }
-  }
-
   const formatDate = (dateString: string) => {
     return new Date(dateString).toLocaleDateString('en-IN', {
       year: 'numeric',
@@ -210,63 +244,56 @@ export default function VehicleDetails({ vehicleId }: VehicleDetailsProps) {
     })
   }
 
-
   const getTotalPaid = () => {
     return payments.reduce((total, payment) => total + payment.amount, 0)
   }
 
-  const getPrincipleAmount = () => {
-    if (!vehicle) return 0
-    return vehicle.principle_amount
-  }
-
-  const getDuration = () => {
-    if (!vehicle) return { months: 0, days: 0 }
+  const calculateInterestAmount = () => {
+    if (!interest) return 0
     
-    const startDate = new Date(vehicle.date_of_lending)
-    const endDate = vehicle.is_closed && vehicle.closure_date 
-      ? new Date(vehicle.closure_date) 
-      : new Date()
+    const principleAmount = interest.principle_amount
+    const interestRate = interest.interest_rate_percentage / 100 // Convert percentage to decimal
     
-    // Calculate months difference
-    let months = (endDate.getFullYear() - startDate.getFullYear()) * 12 + 
-                 (endDate.getMonth() - startDate.getMonth())
-    
-    let days = 0
-    
-    if (endDate.getDate() < startDate.getDate()) {
-      // Case 1: Present day < lending day (e.g., 5 < 17)
-      // Subtract 1 month and calculate days from previous month's anniversary
-      months--
-      
-      // Calculate days from previous month's anniversary to present date
-      const prevAnniversary = new Date(endDate.getFullYear(), endDate.getMonth() - 1, startDate.getDate())
-      const diffTime = endDate.getTime() - prevAnniversary.getTime()
-      days = Math.ceil(diffTime / (1000 * 60 * 60 * 24))
-    } else {
-      // Case 2: Present day >= lending day (e.g., 19 >= 17)
-      // Just calculate days from current month's anniversary
-      days = endDate.getDate() - startDate.getDate()
+    // Calculate interest based on payment frequency
+    let interestAmount = 0
+    switch (interest.payment_frequency) {
+      case 'daily':
+        interestAmount = (principleAmount * interestRate) / 365
+        break
+      case 'weekly':
+        interestAmount = (principleAmount * interestRate) / 52
+        break
+      case 'monthly':
+        interestAmount = (principleAmount * interestRate) / 12
+        break
+      case 'quarterly':
+        interestAmount = (principleAmount * interestRate) / 4
+        break
+      case 'yearly':
+        interestAmount = principleAmount * interestRate
+        break
+      default:
+        interestAmount = (principleAmount * interestRate) / 12 // Default to monthly
     }
     
-    return { months: Math.max(0, months), days: Math.max(0, days) }
+    return Math.round(interestAmount)
   }
 
-  const getRentAmount = () => {
-    if (!vehicle) return 0
-    return vehicle.rent
+  const getPrincipleAmount = () => {
+    if (!interest) return 0
+    return interest.principle_amount
   }
 
   const calculateExtendedDays = () => {
-    if (!vehicle || !vehicle.is_closed || !vehicle.closure_date) return 0
+    if (!interest || !interest.is_closed || !interest.closure_date) return 0
     
-    const startDate = new Date(vehicle.date_of_lending)
-    const endDate = new Date(vehicle.closure_date)
+    const startDate = new Date(interest.date_of_lending)
+    const endDate = new Date(interest.closure_date)
     
     // Calculate the expected end date based on payment frequency
     let expectedEndDate = new Date(startDate)
     
-    switch (vehicle.payment_frequency) {
+    switch (interest.payment_frequency) {
       case 'daily':
         // For daily, calculate based on total payments made
         const totalPayments = payments.length
@@ -306,23 +333,23 @@ export default function VehicleDetails({ vehicleId }: VehicleDetailsProps) {
   }
 
   const calculatePerDayAmount = () => {
-    if (!vehicle) return 0
+    if (!interest) return 0
     
-    const rentAmount = getRentAmount()
+    const interestAmount = calculateInterestAmount()
     
-    switch (vehicle.payment_frequency) {
+    switch (interest.payment_frequency) {
       case 'daily':
-        return rentAmount
+        return interestAmount
       case 'weekly':
-        return rentAmount / 7
+        return interestAmount / 7
       case 'monthly':
-        return rentAmount / 30
+        return interestAmount / 30
       case 'quarterly':
-        return rentAmount / 90
+        return interestAmount / 90
       case 'yearly':
-        return rentAmount / 365
+        return interestAmount / 365
       default:
-        return rentAmount / 30 // Default to monthly
+        return interestAmount / 30 // Default to monthly
     }
   }
 
@@ -333,10 +360,10 @@ export default function VehicleDetails({ vehicleId }: VehicleDetailsProps) {
   }
 
   const getDaysPassedThisMonth = () => {
-    if (!vehicle) return 0
+    if (!interest) return 0
     
     const today = new Date()
-    const lendingDate = new Date(vehicle.date_of_lending)
+    const lendingDate = new Date(interest.date_of_lending)
     
     // Calculate the current monthly anniversary date
     const currentAnniversary = new Date(today.getFullYear(), today.getMonth(), lendingDate.getDate())
@@ -356,12 +383,44 @@ export default function VehicleDetails({ vehicleId }: VehicleDetailsProps) {
     }
   }
 
-  const calculateMonthlyRentTillDate = () => {
-    if (!vehicle) return 0
+  const calculateMonthlyInterestTillDate = () => {
+    if (!interest) return 0
     
     const perDayAmount = calculatePerDayAmount()
     const daysPassed = getDaysPassedThisMonth()
     return perDayAmount * daysPassed
+  }
+
+  const getDuration = () => {
+    if (!interest) return { months: 0, days: 0 }
+    
+    const startDate = new Date(interest.date_of_lending)
+    const endDate = interest.is_closed && interest.closure_date 
+      ? new Date(interest.closure_date) 
+      : new Date()
+    
+    // Calculate months difference
+    let months = (endDate.getFullYear() - startDate.getFullYear()) * 12 + 
+                 (endDate.getMonth() - startDate.getMonth())
+    
+    let days = 0
+    
+    if (endDate.getDate() < startDate.getDate()) {
+      // Case 1: Present day < lending day (e.g., 5 < 17)
+      // Subtract 1 month and calculate days from previous month's anniversary
+      months--
+      
+      // Calculate days from previous month's anniversary to present date
+      const prevAnniversary = new Date(endDate.getFullYear(), endDate.getMonth() - 1, startDate.getDate())
+      const diffTime = endDate.getTime() - prevAnniversary.getTime()
+      days = Math.ceil(diffTime / (1000 * 60 * 60 * 24))
+    } else {
+      // Case 2: Present day >= lending day (e.g., 19 >= 17)
+      // Just calculate days from current month's anniversary
+      days = endDate.getDate() - startDate.getDate()
+    }
+    
+    return { months: Math.max(0, months), days: Math.max(0, days) }
   }
 
   if (loading) {
@@ -372,11 +431,11 @@ export default function VehicleDetails({ vehicleId }: VehicleDetailsProps) {
     )
   }
 
-  if (!vehicle) {
+  if (!interest) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="text-center">
-          <h2 className="text-2xl font-bold text-gray-900 mb-4">Vehicle Not Found</h2>
+          <h2 className="text-2xl font-bold text-gray-900 mb-4">Interest Record Not Found</h2>
           <button
             onClick={() => router.push('/')}
             className="btn-primary"
@@ -389,19 +448,19 @@ export default function VehicleDetails({ vehicleId }: VehicleDetailsProps) {
   }
 
   return (
-    <Layout title={vehicle.vehicle_name}>
+    <Layout title={interest.to_whom}>
       <div className="flex items-center justify-between mb-6">
         <div className="flex items-center gap-4">
           <button
-            onClick={() => router.push('/vehicles')}
+            onClick={() => router.push('/outside_interest')}
             className="flex items-center text-gray-600 hover:text-gray-900"
           >
             <ArrowLeft className="h-5 w-5 mr-2" />
-            Back to Vehicles
+            Back to Interests
           </button>
           <button
             onClick={() => {
-              fetchVehicleDetails()
+              fetchInterestDetails()
               fetchPayments()
             }}
             className="flex items-center text-blue-600 hover:text-blue-900"
@@ -411,39 +470,49 @@ export default function VehicleDetails({ vehicleId }: VehicleDetailsProps) {
           </button>
         </div>
         <span className={`px-3 py-1 rounded-full text-sm font-medium ${
-          !vehicle.is_closed 
+          !interest.is_closed 
             ? 'bg-green-100 text-green-800' 
             : 'bg-red-100 text-red-800'
         }`}>
-          {!vehicle.is_closed ? 'Active' : 'Closed'}
+          {!interest.is_closed ? 'Active' : 'Closed'}
         </span>
       </div>
+
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-          {/* Vehicle Information */}
+          {/* Interest Information */}
           <div className="lg:col-span-2 space-y-6">
             {/* Basic Details */}
             <div className="card">
-              <h2 className="text-lg font-semibold text-gray-900 mb-4">Vehicle Details</h2>
+              <h2 className="text-lg font-semibold text-gray-900 mb-4">Interest Details</h2>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="flex items-center">
                   <User className="h-5 w-5 text-gray-400 mr-3" />
                   <div>
                     <p className="text-sm text-gray-600">Lent To</p>
-                    <p className="font-medium text-gray-900">{vehicle.lend_to}</p>
+                    <p className="font-medium text-gray-900">{interest.lend_to}</p>
                   </div>
                 </div>
                 <div className="flex items-center">
                   <DollarSign className="h-5 w-5 text-gray-400 mr-3" />
                   <div>
                     <p className="text-sm text-gray-600">Principle Amount</p>
-                    <p className="font-medium text-gray-900">{formatCurrency(vehicle.principle_amount)}</p>
+                    <p className="font-medium text-gray-900">{formatCurrency(interest.principle_amount)}</p>
+                  </div>
+                </div>
+                <div className="flex items-center">
+                  <Percent className="h-5 w-5 text-gray-400 mr-3" />
+                  <div>
+                    <p className="text-sm text-gray-600">Interest Rate</p>
+                    <p className="font-medium text-gray-900">
+                      {interest.interest_rate_percentage}% p.a. (₹{interest.interest_rate_indian})
+                    </p>
                   </div>
                 </div>
                 <div className="flex items-center">
                   <Calendar className="h-5 w-5 text-gray-400 mr-3" />
                   <div>
                     <p className="text-sm text-gray-600">Date of Lending</p>
-                    <p className="font-medium text-gray-900">{formatDate(vehicle.date_of_lending)}</p>
+                    <p className="font-medium text-gray-900">{formatDate(interest.date_of_lending)}</p>
                   </div>
                 </div>
                 <div className="flex items-center">
@@ -458,25 +527,32 @@ export default function VehicleDetails({ vehicleId }: VehicleDetailsProps) {
                     </p>
                   </div>
                 </div>
+                <div className="flex items-center">
+                  <User className="h-5 w-5 text-gray-400 mr-3" />
+                  <div>
+                    <p className="text-sm text-gray-600">Category</p>
+                    <p className="font-medium text-gray-900">{interest.category}</p>
+                  </div>
+                </div>
               </div>
               
-              {/* Rent Amounts - Side by Side */}
+              {/* Interest Amounts - Side by Side */}
               <div className="mt-4 grid grid-cols-1 md:grid-cols-2 gap-4">
-                {/* Monthly Rent */}
+                {/* Monthly Interest */}
                 <div className="flex items-center bg-blue-50 p-3 rounded-lg border border-blue-200">
-                  <CreditCard className="h-5 w-5 text-blue-600 mr-3" />
+                  <TrendingUp className="h-5 w-5 text-blue-600 mr-3" />
                   <div>
-                    <p className="text-sm text-blue-700 font-medium">Monthly Rent</p>
-                    <p className="text-lg font-bold text-blue-800">{formatCurrency(vehicle.rent)}</p>
+                    <p className="text-sm text-blue-700 font-medium">Interest Amount ({interest.payment_frequency})</p>
+                    <p className="text-lg font-bold text-blue-800">{formatCurrency(calculateInterestAmount())}</p>
                   </div>
                 </div>
                 
-                {/* Rent Till Date */}
+                {/* Interest Till Date */}
                 <div className="flex items-center bg-green-50 p-3 rounded-lg border border-green-200">
                   <Calendar className="h-5 w-5 text-green-600 mr-3" />
                   <div>
-                    <p className="text-sm text-green-700 font-medium">Rent till date</p>
-                    <p className="text-lg font-bold text-green-800">{formatCurrency(calculateMonthlyRentTillDate())}</p>
+                    <p className="text-sm text-green-700 font-medium">Interest till date</p>
+                    <p className="text-lg font-bold text-green-800">{formatCurrency(calculateMonthlyInterestTillDate())}</p>
                     <p className="text-xs text-green-600">
                       {getDaysPassedThisMonth()} days × {formatCurrency(calculatePerDayAmount())}/day
                     </p>
@@ -489,12 +565,12 @@ export default function VehicleDetails({ vehicleId }: VehicleDetailsProps) {
             <div className="card">
               <div className="flex items-center justify-between mb-4">
                 <h2 className="text-lg font-semibold text-gray-900">Payment Summary</h2>
-                {!vehicle.is_closed && (
+                {!interest.is_closed && (
                   <button
                     onClick={() => {
-                      const rentAmount = getRentAmount()
-                      setPaymentAmount(rentAmount.toString())
-                      setDisplayAmount(formatNumberWithCommas(rentAmount.toString()))
+                      const interestAmount = calculateInterestAmount()
+                      setPaymentAmount(interestAmount.toString())
+                      setDisplayAmount(formatNumberWithCommas(interestAmount.toString()))
                       setShowPaymentForm(!showPaymentForm)
                     }}
                     className="btn-primary flex items-center"
@@ -517,8 +593,8 @@ export default function VehicleDetails({ vehicleId }: VehicleDetailsProps) {
                 <div className="text-center p-4 bg-green-50 rounded-lg">
                   <p className="text-sm text-green-600">Profit</p>
                   <p className="text-xl font-bold text-green-900">
-                    {vehicle.principle_amount > 0 
-                      ? Math.round((getTotalPaid() / vehicle.principle_amount) * 100)
+                    {interest.principle_amount > 0 
+                      ? Math.round((getTotalPaid() / interest.principle_amount) * 100)
                       : 0}%
                   </p>
                 </div>
@@ -586,9 +662,9 @@ export default function VehicleDetails({ vehicleId }: VehicleDetailsProps) {
             <div className="card">
               <div className="flex items-center justify-between mb-4">
                 <h2 className="text-lg font-semibold text-gray-900">Payment History</h2>
-                {vehicle.is_closed && (
+                {interest.is_closed && (
                   <span className="text-sm text-gray-500 bg-gray-100 px-2 py-1 rounded">
-                    Vehicle Closed
+                    Interest Closed
                   </span>
                 )}
               </div>
@@ -634,18 +710,18 @@ export default function VehicleDetails({ vehicleId }: VehicleDetailsProps) {
               <h3 className="text-lg font-semibold text-gray-900 mb-4">Quick Actions</h3>
               <div className="space-y-3">
                 <button 
-                  onClick={() => router.push(`/vehicles?edit=${vehicle.id}`)}
+                  onClick={() => router.push(`/outside_interest?edit=${interest.id}`)}
                   className="w-full btn-primary text-left opacity-75 hover:opacity-100 transition-opacity"
                 >
-                  Edit Vehicle Details
+                  Edit Interest Details
                 </button>
                 
-                {!vehicle.is_closed && (
+                {!interest.is_closed && (
                   <button 
                     onClick={() => setShowCloseConfirm(true)}
                     className="w-full bg-yellow-600 hover:bg-yellow-700 text-white px-4 py-2 rounded-md text-left opacity-75 hover:opacity-100 transition-opacity"
                   >
-                    Close Vehicle
+                    Close Interest
                   </button>
                 )}
                 
@@ -653,42 +729,42 @@ export default function VehicleDetails({ vehicleId }: VehicleDetailsProps) {
                   onClick={() => setShowDeleteConfirm(true)}
                   className="w-full bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-md text-left opacity-75 hover:opacity-100 transition-opacity"
                 >
-                  Delete Vehicle
+                  Delete Interest
                 </button>
               </div>
             </div>
 
-            {/* Vehicle Status */}
+            {/* Interest Status */}
             <div className="card">
               <h3 className="text-lg font-semibold text-gray-900 mb-4">Status Information</h3>
               <div className="space-y-3">
                 <div className="flex justify-between">
                   <span className="text-gray-600">Status</span>
                   <span className={`font-medium ${
-                    !vehicle.is_closed ? 'text-green-600' : 'text-red-600'
+                    !interest.is_closed ? 'text-green-600' : 'text-red-600'
                   }`}>
-                    {!vehicle.is_closed ? 'Active' : 'Closed'}
+                    {!interest.is_closed ? 'Active' : 'Closed'}
                   </span>
                 </div>
                 <div className="flex justify-between">
                   <span className="text-gray-600">Created</span>
-                  <span className="font-medium">{formatDate(vehicle.created_at)}</span>
+                  <span className="font-medium">{formatDate(interest.created_at)}</span>
                 </div>
                 <div className="flex justify-between">
                   <span className="text-gray-600">Last Updated</span>
-                  <span className="font-medium">{formatDate(vehicle.updated_at)}</span>
+                  <span className="font-medium">{formatDate(interest.updated_at)}</span>
                 </div>
-                {vehicle.is_closed && vehicle.closure_date && (
+                {interest.is_closed && interest.closure_date && (
                   <div className="flex justify-between">
                     <span className="text-gray-600">Closed On</span>
-                    <span className="font-medium">{formatDate(vehicle.closure_date)}</span>
+                    <span className="font-medium">{formatDate(interest.closure_date)}</span>
                   </div>
                 )}
               </div>
             </div>
 
             {/* Extended Days Information - Only show when closed */}
-            {vehicle.is_closed && calculateExtendedDays() > 0 && (
+            {interest.is_closed && calculateExtendedDays() > 0 && (
               <div className="card bg-orange-50 border border-orange-200">
                 <div className="text-center py-4">
                   <div className="flex items-center justify-center mb-3">
@@ -733,9 +809,9 @@ export default function VehicleDetails({ vehicleId }: VehicleDetailsProps) {
         {showCloseConfirm && (
           <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
             <div className="bg-white rounded-lg p-6 max-w-md w-full mx-4">
-              <h3 className="text-lg font-semibold text-gray-900 mb-4">Close Vehicle</h3>
+              <h3 className="text-lg font-semibold text-gray-900 mb-4">Close Interest</h3>
               <p className="text-gray-600 mb-6">
-                Are you sure you want to close this vehicle? This action will mark the vehicle as closed and cannot be undone.
+                Are you sure you want to close this interest record? This action will mark the interest as closed and cannot be undone.
               </p>
               <div className="flex space-x-3">
                 <button
@@ -745,10 +821,10 @@ export default function VehicleDetails({ vehicleId }: VehicleDetailsProps) {
                   Cancel
                 </button>
                 <button
-                  onClick={handleCloseVehicle}
+                  onClick={handleCloseInterest}
                   className="flex-1 px-4 py-2 bg-yellow-600 text-white rounded-md hover:bg-yellow-700"
                 >
-                  Close Vehicle
+                  Close Interest
                 </button>
               </div>
             </div>
@@ -759,9 +835,9 @@ export default function VehicleDetails({ vehicleId }: VehicleDetailsProps) {
         {showDeleteConfirm && (
           <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
             <div className="bg-white rounded-lg p-6 max-w-md w-full mx-4">
-              <h3 className="text-lg font-semibold text-gray-900 mb-4">Delete Vehicle</h3>
+              <h3 className="text-lg font-semibold text-gray-900 mb-4">Delete Interest</h3>
               <p className="text-gray-600 mb-6">
-                Are you sure you want to delete this vehicle? This action cannot be undone and will permanently remove the vehicle and all its data.
+                Are you sure you want to delete this interest record? This action cannot be undone and will permanently remove the interest and all its data.
               </p>
               <div className="flex space-x-3">
                 <button
@@ -771,10 +847,10 @@ export default function VehicleDetails({ vehicleId }: VehicleDetailsProps) {
                   Cancel
                 </button>
                 <button
-                  onClick={handleDeleteVehicle}
+                  onClick={handleDeleteInterest}
                   className="flex-1 px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700"
                 >
-                  Delete Vehicle
+                  Delete Interest
                 </button>
               </div>
             </div>

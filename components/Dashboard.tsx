@@ -8,6 +8,7 @@ import toast from 'react-hot-toast'
 import { useRouter } from 'next/navigation'
 import DashboardOverview from './DashboardOverview'
 import VehiclesList from './VehiclesList'
+import OutsideInterestList from './OutsideInterestList'
 import ComingSoon from './ComingSoon'
 
 type TabType = 'overview' | 'vehicles' | 'outside-interest' | 'loans' | 'payments' | 'analytics' | 'chiti'
@@ -39,7 +40,7 @@ export default function Dashboard() {
 
   const fetchDashboardSummary = async () => {
     try {
-      const response = await api.get('/dashboard/summary')
+      const response = await api.get('/api/v1/dashboard/summary')
       setSummary(response.data)
     } catch (error) {
       // Silently handle error since dashboard summary is not critical
@@ -70,7 +71,7 @@ export default function Dashboard() {
       case 'vehicles':
         return <VehiclesList />
       case 'outside-interest':
-        return <ComingSoon title="Outside Interest Management" description="Manage outside interest investments and track their performance." />
+        return <OutsideInterestList />
       case 'loans':
         return <ComingSoon title="Loans Management" description="Track and manage all loan activities and repayments." />
       case 'payments':

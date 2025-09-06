@@ -438,11 +438,11 @@ export default function VehiclesList() {
                 <span className="font-medium">{vehicle.lend_to}</span>
               </div>
               
-              {/* Extended Days Display */}
-              {!vehicle.is_closed && vehicle.extended_days !== undefined && vehicle.extended_days > 0 && (
-                <div className="flex items-center gap-2 text-sm bg-yellow-50 p-2 rounded-md">
-                  <Clock className="w-4 h-4 text-yellow-600" />
-                  <span className="text-yellow-800 font-medium">
+              {/* Extended Days Display - Only show when closed */}
+              {vehicle.is_closed && vehicle.extended_days !== undefined && vehicle.extended_days > 0 && (
+                <div className="flex items-center gap-2 text-sm bg-orange-50 p-2 rounded-md">
+                  <Clock className="w-4 h-4 text-orange-600" />
+                  <span className="text-orange-800 font-medium">
                     Extended: {vehicle.extended_days} days
                   </span>
                 </div>
