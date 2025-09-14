@@ -62,7 +62,7 @@ export default function ChitDetails({ chitId }: ChitDetailsProps) {
     payment_status: 'PAID'
   })
   const [formLoading, setFormLoading] = useState(false)
-  const [formErrors, setFormErrors] = useState<Partial<ChitPaymentFormData>>({})
+  const [formErrors, setFormErrors] = useState<Partial<Record<keyof ChitPaymentFormData, string>>>({})
   const [showEditForm, setShowEditForm] = useState(false)
   const [editFormData, setEditFormData] = useState({
     chit_name: '',
@@ -72,14 +72,14 @@ export default function ChitDetails({ chitId }: ChitDetailsProps) {
     start_date: ''
   })
   const [editFormLoading, setEditFormLoading] = useState(false)
-  const [editFormErrors, setEditFormErrors] = useState<Partial<typeof editFormData>>({})
+  const [editFormErrors, setEditFormErrors] = useState<Partial<Record<keyof typeof editFormData, string>>>({})
   const [showCollectForm, setShowCollectForm] = useState(false)
   const [collectFormData, setCollectFormData] = useState({
     collected_amount: 0,
     collected_date: new Date().toISOString().split('T')[0]
   })
   const [collectFormLoading, setCollectFormLoading] = useState(false)
-  const [collectFormErrors, setCollectFormErrors] = useState<Partial<typeof collectFormData>>({})
+  const [collectFormErrors, setCollectFormErrors] = useState<Partial<Record<keyof typeof collectFormData, string>>>({})
   const router = useRouter()
 
   useEffect(() => {
@@ -150,12 +150,16 @@ export default function ChitDetails({ chitId }: ChitDetailsProps) {
   const handleEditInputChange = (field: keyof typeof editFormData, value: string | number) => {
     setEditFormData(prev => ({ ...prev, [field]: value }))
     if (editFormErrors[field]) {
-      setEditFormErrors(prev => ({ ...prev, [field]: undefined }))
+      setEditFormErrors(prev => {
+        const newErrors = { ...prev }
+        delete newErrors[field]
+        return newErrors
+      })
     }
   }
 
   const validateEditForm = (): boolean => {
-    const newErrors: Partial<typeof editFormData> = {}
+    const newErrors: Partial<Record<keyof typeof editFormData, string>> = {}
 
     if (!editFormData.chit_name.trim()) {
       newErrors.chit_name = 'Chit name is required'
@@ -241,12 +245,16 @@ export default function ChitDetails({ chitId }: ChitDetailsProps) {
   const handleCollectInputChange = (field: keyof typeof collectFormData, value: string | number) => {
     setCollectFormData(prev => ({ ...prev, [field]: value }))
     if (collectFormErrors[field]) {
-      setCollectFormErrors(prev => ({ ...prev, [field]: undefined }))
+      setCollectFormErrors(prev => {
+        const newErrors = { ...prev }
+        delete newErrors[field]
+        return newErrors
+      })
     }
   }
 
   const validateCollectForm = (): boolean => {
-    const newErrors: Partial<typeof collectFormData> = {}
+    const newErrors: Partial<Record<keyof typeof collectFormData, string>> = {}
 
     if (collectFormData.collected_amount <= 0) {
       newErrors.collected_amount = 'Collected amount must be greater than 0'
@@ -395,12 +403,16 @@ export default function ChitDetails({ chitId }: ChitDetailsProps) {
   const handleInputChange = (field: keyof ChitPaymentFormData, value: string | number) => {
     setFormData(prev => ({ ...prev, [field]: value }))
     if (formErrors[field]) {
-      setFormErrors(prev => ({ ...prev, [field]: undefined }))
+      setFormErrors(prev => {
+        const newErrors = { ...prev }
+        delete newErrors[field]
+        return newErrors
+      })
     }
   }
 
   const validateForm = (): boolean => {
-    const newErrors: Partial<ChitPaymentFormData> = {}
+    const newErrors: Partial<Record<keyof ChitPaymentFormData, string>> = {}
 
     if (formData.amount <= 0) {
       newErrors.amount = 'Amount must be greater than 0'
