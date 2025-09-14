@@ -40,7 +40,7 @@ export default function ChitPaymentForm({ onClose, onSuccess }: ChitPaymentFormP
     payment_status: 'PAID'
   })
   const [loading, setLoading] = useState(false)
-  const [errors, setErrors] = useState<Partial<ChitPaymentFormData>>({})
+  const [errors, setErrors] = useState<Partial<Record<keyof ChitPaymentFormData, string>>>({})
 
   useEffect(() => {
     fetchChits()
@@ -71,12 +71,16 @@ export default function ChitPaymentForm({ onClose, onSuccess }: ChitPaymentFormP
     setFormData(prev => ({ ...prev, [field]: value }))
     // Clear error when user starts typing
     if (errors[field]) {
-      setErrors(prev => ({ ...prev, [field]: undefined }))
+      setErrors(prev => {
+        const newErrors = { ...prev }
+        delete newErrors[field]
+        return newErrors
+      })
     }
   }
 
   const validateForm = (): boolean => {
-    const newErrors: Partial<ChitPaymentFormData> = {}
+    const newErrors: Partial<Record<keyof ChitPaymentFormData, string>> = {}
 
     if (!formData.source_id) {
       newErrors.source_id = 'Please select a chit'

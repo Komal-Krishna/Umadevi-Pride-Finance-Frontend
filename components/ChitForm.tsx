@@ -26,7 +26,7 @@ export default function ChitForm({ onClose, onSuccess }: ChitFormProps) {
     start_date: new Date().toISOString().split('T')[0]
   })
   const [loading, setLoading] = useState(false)
-  const [errors, setErrors] = useState<Partial<ChitFormData>>({})
+  const [errors, setErrors] = useState<Partial<Record<keyof ChitFormData, string>>>({})
 
   const calculateMonthlyAmount = () => {
     if (formData.total_amount > 0 && formData.duration_months > 0) {
@@ -39,7 +39,11 @@ export default function ChitForm({ onClose, onSuccess }: ChitFormProps) {
     setFormData(prev => ({ ...prev, [field]: value }))
     // Clear error when user starts typing
     if (errors[field]) {
-      setErrors(prev => ({ ...prev, [field]: undefined }))
+      setErrors(prev => {
+        const newErrors = { ...prev }
+        delete newErrors[field]
+        return newErrors
+      })
     }
   }
 
@@ -48,7 +52,7 @@ export default function ChitForm({ onClose, onSuccess }: ChitFormProps) {
   }
 
   const validateForm = (): boolean => {
-    const newErrors: Partial<ChitFormData> = {}
+    const newErrors: Partial<Record<keyof ChitFormData, string>> = {}
 
     if (!formData.chit_name.trim()) {
       newErrors.chit_name = 'Chit name is required'
