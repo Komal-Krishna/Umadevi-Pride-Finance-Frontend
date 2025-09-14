@@ -224,7 +224,7 @@ export default function LoanForm({ isOpen, onClose, onSuccess, editData }: LoanF
         await api.put(`/api/v1/loans/${editData.id}`, submitData)
         toast.success('Loan updated successfully!')
       } else {
-        await api.post('/api/v1/loans', submitData)
+        await api.post('/api/v1/loans/', submitData)
         toast.success('Loan created successfully!')
       }
 
@@ -232,25 +232,7 @@ export default function LoanForm({ isOpen, onClose, onSuccess, editData }: LoanF
       onClose()
     } catch (error: any) {
       console.error('Error saving loan:', error)
-      
-      // Handle different error response formats
-      let errorMessage = 'Error saving loan'
-      
-      if (error.response?.data) {
-        if (typeof error.response.data.detail === 'string') {
-          errorMessage = error.response.data.detail
-        } else if (Array.isArray(error.response.data.detail)) {
-          // Handle validation errors array
-          errorMessage = error.response.data.detail.map((err: any) => err.msg || err.message || 'Validation error').join(', ')
-        } else if (error.response.data.detail && typeof error.response.data.detail === 'object') {
-          // Handle single validation error object
-          errorMessage = error.response.data.detail.msg || error.response.data.detail.message || 'Validation error'
-        } else if (error.response.data.message) {
-          errorMessage = error.response.data.message
-        }
-      }
-      
-      toast.error(errorMessage)
+      toast.error(error.response?.data?.detail || 'Error saving loan')
     } finally {
       setLoading(false)
     }

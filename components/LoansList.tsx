@@ -99,7 +99,7 @@ export default function LoansList() {
   const fetchLoans = async () => {
     try {
       setError(null)
-      const response = await api.get('/api/v1/loans')
+      const response = await api.get('/api/v1/loans/')
       setLoans(response.data)
     } catch (error: any) {
       console.error('Error fetching loans:', error)
