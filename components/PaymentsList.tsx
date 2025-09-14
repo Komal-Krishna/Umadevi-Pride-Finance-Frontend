@@ -16,6 +16,10 @@ interface Payment {
   description?: string
   payment_status: string
   created_at: string
+  // Chit payment fields
+  expected_amount?: number
+  profit?: number
+  profit_percentage?: number
 }
 
 type SortField = 'payment_date' | 'amount' | 'payment_status' | 'payment_type' | 'source_type'
@@ -234,7 +238,7 @@ export default function PaymentsList() {
                     <option key={status} value={status}>{status}</option>
                   ))}
                 </select>
-              </div>
+      </div>
 
               {/* Type Filter */}
               <div>
@@ -266,9 +270,9 @@ export default function PaymentsList() {
                 </select>
               </div>
             </div>
-          </div>
-        )}
-      </div>
+              </div>
+              )}
+            </div>
 
       {/* Sort Controls */}
       <div className="flex flex-wrap items-center gap-2">
@@ -294,7 +298,7 @@ export default function PaymentsList() {
                 {sortDirection === 'asc' ? '↑' : '↓'}
               </span>
             )}
-          </button>
+              </button>
         ))}
       </div>
 
